@@ -27,7 +27,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetch User :",data)
+        console.log("Fetch User :", data);
         setUser(data);
       } else {
         setUser(null);
@@ -47,7 +47,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         method: "POST",
         credentials: "include", // Ensure cookies are included in the request
       });
-  
+
       if (response.ok) {
         // After successful logout, clear the user state and redirect
         setUser(null);
@@ -59,7 +59,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Logout error:", error);
     }
   };
-  
 
   useEffect(() => {
     fetchUser();
@@ -68,11 +67,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   // Redirect to login if user is not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      console.log("User session expired. Redirecting to login.",user);
-      router.push("/login");
+      const publicRoutes = ["/team/setup-password"]; // Allow setup-password page
+      if (!publicRoutes.includes(window.location.pathname)) {
+        console.log("User session expired. Redirecting to login.", user);
+        router.push("/login");
+      }
     }
   }, [loading, user, router]);
-  
 
   return (
     <UserContext.Provider value={{ user, loading, fetchUser, logout }}>

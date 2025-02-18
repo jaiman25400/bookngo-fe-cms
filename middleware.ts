@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const publicPaths = ["/login", "/auth/login"];
+  const publicPaths = ["/login", "/auth/login", "/team/setup-password"];
   const { pathname } = request.nextUrl;
 
   console.log("Middle Ware :",pathname)
