@@ -37,7 +37,7 @@ export default function Navbar() {
                   Team
                 </Link>
                 <Link
-                  href="/projects"
+                  href="/inventory"
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
                 >
                   Inventory
@@ -107,7 +107,7 @@ export default function Navbar() {
                 Team
               </Link>
               <Link
-                href="/projects"
+                href="/inventory"
                 className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
               >
                 Inventory
