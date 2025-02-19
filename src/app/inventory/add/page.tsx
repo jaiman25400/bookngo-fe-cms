@@ -10,6 +10,7 @@ export default function AddInventoryPage() {
     equipment_name: "",
     totalQuantity: 1, // Initialize with a valid integer
     availableQuantity: 1, // Initialize with a valid integer
+    rental_price_per_hour:  1,
     sizes: [{ size: "", quantity: 1 }], // Initialize size quantity as a valid integer
   });
 
@@ -27,7 +28,7 @@ const handleChange = (
     console.log("HANDLE CHANGE :", name, value);
   
     // Parse the value as a number (if the value is empty, default to 1)
-    const parsedValue = name === "totalQuantity" || name === "availableQuantity" 
+    const parsedValue = name === "totalQuantity" || name === "availableQuantity"  || name === "rental_price_per_hour"
       ? parseInt(value, 10) || ''  // If the value is empty or NaN, set to 1
       : value;
   
@@ -118,6 +119,7 @@ const handleSizeChange = (
         equipment_name: "",
         totalQuantity: 1,
         availableQuantity: 1,
+        rental_price_per_hour: 0,
         sizes: [{ size: "", quantity: 1 }],
       });
     } catch (error: any) {
@@ -195,6 +197,22 @@ const handleSizeChange = (
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+
+        {/* Price Per Hour */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Price Per Hour
+          </label>
+          <input
+            type="number"
+            name="rental_price_per_hour"
+            value={formData.rental_price_per_hour}
+            onChange={handleChange}
+            required
+            min="1"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>        
 
         {/* Sizes Section */}
         <div>
