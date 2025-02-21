@@ -10,6 +10,7 @@ export interface InventoryItem {
   equipment_name: string;
   totalQuantity: number;
   availableQuantity: number;
+  rental_price_per_hour: number;
   sizes: Size[]; // ✅ Always an array
 }
 
@@ -17,5 +18,6 @@ export interface UpdateInventoryItem {
   equipment_name: string;
   totalQuantity: number;
   availableQuantity: number;
+  rental_price_per_hour: number;
   sizes: Size[]; // ✅ Always an array
 }

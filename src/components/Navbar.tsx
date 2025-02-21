@@ -17,7 +17,9 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold">BookNGo</h1>
+            <Link href="/" className="text-xl font-bold">
+              BookNGo
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
@@ -25,10 +27,10 @@ export default function Navbar() {
             <>
               <div className="hidden sm:flex space-x-4">
                 <Link
-                  href="/"
+                  href="/activity"
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
                 >
-                  Dashboard
+                  Activity
                 </Link>
                 <Link
                   href="/team"
@@ -95,10 +97,10 @@ export default function Navbar() {
           {user && (
             <>
               <Link
-                href="/"
+                href="/activity"
                 className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
               >
-                Dashboard
+                Activity
               </Link>
               <Link
                 href="/team"

@@ -58,6 +58,7 @@ const InventoryPage = () => {
           equipment_name: item.equipment_name,
           totalQuantity: item.totalQuantity,
           availableQuantity: item.availableQuantity,
+          rental_price_per_hour: item.rental_price_per_hour,
           sizes: cleanedSizes, // Only send size and quantity, keep 'id' for existing sizes
         };
 
