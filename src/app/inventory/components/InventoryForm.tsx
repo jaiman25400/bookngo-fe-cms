@@ -14,14 +14,14 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
   onSave,
   onCancel,
 }) => {
-
-  console.log("Inventory Update",initialData)
+  console.log("Inventory Update", initialData);
   // Initialize form state with either initialData (for edit) or empty fields (for add)
   const [formData, setFormData] = useState<InventoryItem>({
     id: initialData?.id || 0,
     equipment_name: initialData?.equipment_name || "",
     totalQuantity: initialData?.totalQuantity || 1,
     availableQuantity: initialData?.availableQuantity || 1,
+    rental_price_per_hour: initialData?.rental_price_per_hour || 0,
     sizes:
       typeof initialData?.sizes === "string"
         ? []
@@ -31,11 +31,11 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
   // Handle input changes for main fields
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
+    console.log("VALUE : ",value)
     // Parse values for numbers
     const parsedValue =
-      name === "totalQuantity" || name === "availableQuantity"
-        ? parseInt(value, 10) || ''
+      name === "totalQuantity" || name === "availableQuantity" || name === "rental_price_per_hour"
+        ? parseInt(value, 10) || ""
         : value;
 
     setFormData((prev) => ({ ...prev, [name]: parsedValue }));
@@ -49,7 +49,7 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
     const { name, value } = e.target;
 
     // Ensure quantity is a valid integer
-    const parsedValue = name === "quantity" ? parseInt(value, 10) || '' : value;
+    const parsedValue = name === "quantity" ? parseInt(value, 10) || "" : value;
 
     const updatedSizes = [...formData.sizes];
     updatedSizes[index] = { ...updatedSizes[index], [name]: parsedValue };
@@ -131,7 +131,21 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-
+        {/* Available Price */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Price Per Hour
+          </label>
+          <input
+            type="number"
+            name="rental_price_per_hour"
+            value={formData.rental_price_per_hour}
+            onChange={handleChange}
+            required
+            min="1"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
         {/* Sizes Section */}
         <div>
           <label className="block text-sm font-medium text-gray-700">
