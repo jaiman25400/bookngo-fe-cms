@@ -6,12 +6,12 @@ const publicPaths = ["/login", "/setup-password"];
 
 const roleRestrictedPaths: Record<string, string[]> = {
   Manager: [
-    "/activity/",
+    "/activity/add",
     "/inventory/add",
     "/zone/add",
   ],
   Team: [
-    "/activity/",
+    "/activity/add",
     "/inventory/add",
     "/zone/add",
     "/team/",
