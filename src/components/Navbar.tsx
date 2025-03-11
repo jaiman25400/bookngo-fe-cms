@@ -1,142 +1,111 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link"; // Import Link from Next.js
-import { useUser } from "../context/UserContext"; // Import useUser hook
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout, loading } = useUser();
+  const pathname = usePathname();
 
-  const handleLogout = () => {
-    logout();
+  // Static navigation links (only shown in protected routes)
+  const navLinks = [
+    { href: "/activity", label: "Activity" },
+    { href: "/team", label: "Team" },
+    { href: "/inventory", label: "Inventory" },
+    { href: "/zone", label: "Zone" },
+  ];
+
+  // Close mobile menu when navigation occurs
+  useEffect(() => setIsOpen(false), [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:3000/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/login"; // Full page reload to clear state
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    setIsOpen(false);
   };
 
   return (
-    <nav className="bg-gray-800 text-white">
+    <nav className="bg-gray-800 text-white shadow-lg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold">
+          {/* Logo */}
+          <div className="flex items-center flex-shrink-0">
+            <Link
+              href="/"
+              className="text-xl font-bold hover:text-gray-300 transition-colors"
+            >
               BookNGo
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          {user && (
-            <>
-              <div className="hidden sm:flex space-x-4">
+          <div className="hidden sm:flex flex-1 justify-center items-center">
+            <div className="flex space-x-4">
+              {navLinks.map((link) => (
                 <Link
-                  href="/activity"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
+                  key={link.href}
+                  href={link.href}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
                 >
-                  Activity
+                  {link.label}
                 </Link>
-                <Link
-                  href="/team"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-                >
-                  Team
-                </Link>
-                <Link
-                  href="/inventory"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-                >
-                  Inventory
-                </Link>
-                <Link
-                  href="/calendar"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-                >
-                  Calendar
-                </Link>
-              </div>
-            </>
-          )}
+              ))}
+            </div>
+          </div>
 
-          {/* Right Side: Profile & Logout */}
+          {/* Logout Button */}
           <div className="hidden sm:flex items-center space-x-4">
-            {loading ? (
-              <span>Loading...</span>
-            ) : user ? (
-              <>
-                <span className="text-sm font-medium">
-                  {user.customer_name}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-2 rounded-md text-sm font-medium bg-red-500 hover:bg-red-600"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="px-3 py-2 rounded-md text-sm font-medium bg-blue-500 hover:bg-blue-600"
-              >
-                Login
-              </Link>
-            )}
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-red-600 hover:bg-red-700 transition-colors"
+              aria-label="Logout"
+            >
+              Logout
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="sm:hidden p-2 text-lg focus:outline-none"
+            className="sm:hidden p-2 hover:bg-gray-700 rounded-md transition-colors"
             onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle navigation menu"
           >
-            {isOpen ? "✖" : "☰"}
+            {isOpen ? (
+              <XMarkIcon className="h-6 w-6" />
+            ) : (
+              <Bars3Icon className="h-6 w-6" />
+            )}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
-
       {isOpen && (
         <div className="sm:hidden px-2 pb-3 space-y-1">
-          {user && (
-            <>
-              <Link
-                href="/activity"
-                className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-              >
-                Activity
-              </Link>
-              <Link
-                href="/team"
-                className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-              >
-                Team
-              </Link>
-              <Link
-                href="/inventory"
-                className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-              >
-                Inventory
-              </Link>
-              <Link
-                href="/calendar"
-                className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-              >
-                Calendar
-              </Link>
-            </>
-          )}
-          {user ? (
-            <button
-              onClick={handleLogout}
-              className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium bg-red-500 hover:bg-red-600"
-            >
-              Logout
-            </button>
-          ) : (
+          {navLinks.map((link) => (
             <Link
-              href="/login"
-              className="block px-3 py-2 rounded-md text-sm font-medium bg-blue-500 hover:bg-blue-600"
+              key={link.href}
+              href={link.href}
+              className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
             >
-              Login
+              {link.label}
             </Link>
-          )}
+          ))}
+          <button
+            onClick={handleLogout}
+            className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium bg-red-600 hover:bg-red-700"
+          >
+            Logout
+          </button>
         </div>
       )}
     </nav>
