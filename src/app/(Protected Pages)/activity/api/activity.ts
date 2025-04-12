@@ -1,12 +1,11 @@
 import axios from "axios";
-import { CreateActivityPayload } from "../types/activityTypes";
-// API Base URL (Update as needed)
-const API_URL = "http://localhost:3000";
+
+const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
 
 // Fetch all activities
 export const fetchActivities = async () => {
   try {
-    const response = await axios.get(`${API_URL}/activities`, {
+    const response = await axios.get(`${API_BASE_URL}/activities`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
     return response.data;
@@ -17,31 +16,32 @@ export const fetchActivities = async () => {
 };
 
 // Create new activity
-export const createActivity = async (
-  activityData: CreateActivityPayload
-): Promise<CreateActivityPayload> => {
+export const createActivity = async (formData: FormData): Promise<any> => {
   try {
-    console.log("Create Activity Data with Customer ID:", activityData);
-
     const response = await axios.post(
-      `${API_URL}/activities/add`,
-      activityData,
+      `${API_BASE_URL}/activities/add`,
+      formData,
       {
-        withCredentials: true, // Ensure cookies are sent with the request
+        withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }
     );
-    console.log("Res :", response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating activity:", error);
-    throw new Error("Failed to create activity");
+    // Throw error with proper message formatting
+    const errorMessage =
+      error.response?.data?.message || "Failed to create activity";
+    throw new Error(errorMessage);
   }
 };
 
 // Fetch single activity by ID
 export const fetchActivityById = async (id: number) => {
   try {
-    const response = await axios.get(`${API_URL}/activities/${id}`, {
+    const response = await axios.get(`${API_BASE_URL}/activities/${id}`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
     return response.data;
@@ -52,13 +52,12 @@ export const fetchActivityById = async (id: number) => {
 };
 
 // Update existing activity
-export const updateActivity = async (activityData: any) => {
+export const updateActivity = async (id: number, activityData: FormData) => {
   try {
-    const { id, ...activityWithoutId } = activityData;
-    console.log("Act for update ", activityWithoutId);
+    console.log("Act for update ", activityData);
     const response = await axios.patch(
-      `${API_URL}/activities/${id}`,
-      activityWithoutId,
+      `${API_BASE_URL}/activities/${id}`,
+      activityData,
       {
         withCredentials: true, // Ensure cookies are sent with the request
       }
@@ -73,7 +72,7 @@ export const updateActivity = async (activityData: any) => {
 // Delete activity
 export const deleteActivity = async (id: number) => {
   try {
-    const response = await axios.delete(`${API_URL}/activities/${id}`, {
+    const response = await axios.delete(`${API_BASE_URL}/activities/${id}`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
     return response.data;

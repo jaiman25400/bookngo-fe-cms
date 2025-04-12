@@ -11,11 +11,18 @@ import {
   updateActivity,
 } from "./api/activity";
 
+import {
+  UpdateActivityFormData,
+  currentActivityPayload,
+  ScheduleItem,
+} from "./types/activityTypes";
+
 export default function ActivityPage() {
   const router = useRouter();
 
-  const [activities, setActivities] = useState<any[]>([]);
-  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [activities, setActivities] = useState<currentActivityPayload[]>([]);
+  const [selectedActivity, setSelectedActivity] =
+    useState<currentActivityPayload | null>(null);
   const [selectDelteActivityID, setSelectDeleteActivityID] = useState<
     number | null
   >(null);
@@ -40,21 +47,72 @@ export default function ActivityPage() {
     fetchAllActivities();
   }, []);
 
-  const handleSave = async (updatedActivity: any) => {
+  const handleSave = async (
+    updatedActivity: UpdateActivityFormData,
+    thumbnailFile?: File,
+    galleryFiles?: File[],
+    schedules?: ScheduleItem[],
+    holidays?: string[],
+    selectedZones?: number[]
+  ) => {
     try {
-      if (updatedActivity.id) {
-        const result = await updateActivity(
-          updatedActivity
-        );
-        setActivities((prev) =>
-          prev.map((activity) =>
-            activity.id === result.id ? result : activity
-          )
+      const formData = new FormData();
+
+      console.log("🚀 Update Activity BUTTON CLICKED: Activity Update", {
+        updatedActivity,
+        thumbnailFile,
+        galleryFiles,
+      });
+
+      if (!updatedActivity.id) {
+        setError("❌ Update Failed: Missing Activity ID");
+        return;
+      }
+
+      // Append complex data structures
+      if (schedules) {
+        formData.append("schedules", JSON.stringify(schedules));
+      }
+      if (holidays) {
+        formData.append(
+          "holidays",
+          JSON.stringify(holidays.map((date) => ({ date })))
         );
       }
+      if (selectedZones) {
+        formData.append("zone_id", JSON.stringify(selectedZones));
+      }
+
+      if (thumbnailFile) {
+        formData.append("activity_thumbnail_image", thumbnailFile);
+      }
+
+      if (galleryFiles?.length) {
+        galleryFiles.forEach((file) => {
+          formData.append("activity_image_gallery", file); // Ensure multiple files are appended correctly
+        });
+      }
+
+      // Append other ActivityData fields safely
+      Object.entries(updatedActivity).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      console.log("📦 FormData Prepared for Submission:");
+
+      for (const [key, value] of formData.entries()) {
+        console.log(`🔹 ${key}:`, value);
+      }
+
+      const result = await updateActivity(updatedActivity.id, formData);
+      setActivities((prev) =>
+        prev.map((activity) => (activity.id === result.id ? result : activity))
+      );
       setSelectedActivity(null);
     } catch (error) {
-      console.error("Error updating activity:", error);
+      console.log("Update Activity Error :", error);
       alert("Failed to update activity.");
     }
   };

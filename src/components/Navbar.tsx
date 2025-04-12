@@ -15,6 +15,7 @@ export default function Navbar() {
     { href: "/team", label: "Team" },
     { href: "/inventory", label: "Inventory" },
     { href: "/zone", label: "Zone" },
+    { href: "/profile", label: "Profile" },
   ];
 
   // Close mobile menu when navigation occurs

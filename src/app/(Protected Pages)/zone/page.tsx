@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import ZoneTable from "./components/ZoneTable";
 import ZoneForm from "./components/ZoneForm";
 import DeleteModal from "./components/DeleteModal";
-import { Zone } from "./types/ZoneTypes";
+import { Zone, UpdateZoneFormData } from "./types/ZoneTypes";
 import { useRouter } from "next/navigation";
 import { deleteZone, fetchZones, updateZone } from "./api/zone"; // Import zone API functions
 
 const ZonePage = () => {
-
   const [zones, setZones] = useState<Zone[]>([]);
-  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [selectedZone, setSelectedZone] = useState<UpdateZoneFormData | null>(
+    null
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +24,7 @@ const ZonePage = () => {
       try {
         console.log("Get Zone");
         const data = await fetchZones();
+        console.log("Zone Data ", data);
         setZones(data);
         setLoading(false);
       } catch (err) {
@@ -33,41 +35,72 @@ const ZonePage = () => {
 
     getZones();
   }, []);
-
-  const handleSave = async (zone: Zone) => {
+  
+  const handleSave = async (
+    zoneData: UpdateZoneFormData,
+    thumbnailFile?: File,
+    galleryFiles?: File[]
+  ) => {
     try {
-      // Validate input
-      if (!zone.id || typeof zone.id !== "number") {
-        throw new Error("Invalid zone data");
+      console.log("🚀 SAVE BUTTON CLICKED: Zone Update", {
+        zoneData,
+        thumbnailFile,
+        galleryFiles,
+      });
+
+      const formData = new FormData();
+
+      if (thumbnailFile) {
+        formData.append("zone_thumbnail_image", thumbnailFile);
       }
-  
-      // Exclude 'id' from the payload
-      const { id, ...payload } = zone;
-  
-      // Optimistically update UI
-      setZones((prev) => prev.map((z) => (z.id === id ? zone : z)));
-      console.log("Update Zone ", zone);
-  
-      // Update zone on the server (send 'id' as URL param and 'payload' as body)
-      const updatedZone = await updateZone(id, payload);
-  
-      // Ensure update is successful and reflect changes
+
+      if (galleryFiles?.length) {
+        galleryFiles.forEach((file) => {
+          formData.append("zone_image_gallery", file); // Ensure multiple files are appended correctly
+        });
+      }
+
+      // Append other zoneData fields safely
+      Object.entries(zoneData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      console.log("📦 FormData Prepared for Submission:");
+
+      for (const [key, value] of formData.entries()) {
+        console.log(`🔹 ${key}:`, value);
+      }
+
+      if (!zoneData.id) {
+        setError("❌ Update Failed: Missing Zone ID");
+        return;
+      }
+
+      console.log("🔄 Updating Zone...");
+
+      const updatedZone = await updateZone(zoneData.id, formData);
+
+      console.log("✅ Update Response:", updatedZone);
+
       if (updatedZone?.id) {
         setZones((prev) =>
-          prev.map((z) => (z.id === updatedZone.id ? updatedZone : z))
+          prev.map((i) => (i.id === updatedZone.id ? updatedZone : i))
         );
+      } else {
+        setError("❌ Update Failed: Invalid Response from Server");
       }
-  
+
       setSelectedZone(null);
     } catch (error) {
-      console.error("Error saving zone:", error);
-      alert("Failed to save zone. Please try again.");
+      console.error("🔥 Error in handleSave:", error);
+      setError("An unexpected error occurred. Please try again.");
     }
   };
-  
 
   const handleDelete = async () => {
-    if (!selectedZone ) return;
+    if (!selectedZone) return;
 
     try {
       await deleteZone(selectedZone.id);
