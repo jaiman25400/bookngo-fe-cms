@@ -1,14 +1,13 @@
 import axios from "axios";
 import { Zone } from "../types/ZoneTypes";
-import { CreateZone } from "../types/ZoneTypes";
 
-const API_URL = "http://localhost:3000/activity-zones"; // Replace with actual API URL
+const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
 
 // Fetch all zones
 export const fetchZones = async (): Promise<Zone[]> => {
   try {
     console.log("Fetch Zone");
-    const response = await axios.get(API_URL, {
+    const response = await axios.get(`${API_BASE_URL}/activity-zones`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
     console.log("Fetch Zone Data ", response);
@@ -21,29 +20,51 @@ export const fetchZones = async (): Promise<Zone[]> => {
 };
 
 // Add new zone
-export const addZone = async (CreateZone: CreateZone): Promise<CreateZone> => {
+export const addZone = async (formData: FormData): Promise<any> => {
   try {
-    console.log("Create Zone :", CreateZone);
-    const response = await axios.post(`${API_URL}/add`, CreateZone, {
-      withCredentials: true, // Ensure cookies are sent with the request
-    });
+    // In handleSubmit before axios call
+    console.log("FormData contents:");
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+      formData;
+    }
+    const response = await axios.post(
+      `${API_BASE_URL}/activity-zones/add`,
+      formData,
+      {
+        withCredentials: true,
+      }
+    );
+    console.log('Res we got :',response)
     return response.data;
-  } catch (error) {
-    console.error("Error adding zone:", error);
-    throw new Error("Failed to add zone");
+  } catch (error:any) {
+    // Extract backend error message
+    const errorMessage = error.response?.data?.message 
+      || error.message 
+      || "Failed to add zone";
+
+    // Throw as Error object with proper message
+    throw new Error(errorMessage);
   }
 };
 
 // Update existing zone
 export const updateZone = async (
   id: number,
-  zone: Partial<Zone>
+  formData: FormData
 ): Promise<Zone> => {
   try {
     // Send a PATCH request for partial updates (more RESTful)
-    const response = await axios.patch(`${API_URL}/${id}`, zone, {
-      withCredentials: true, // Ensure cookies are sent with the request
-    });
+    const response = await axios.patch(
+      `${API_BASE_URL}/activity-zones/${id}`,
+      formData,
+      {
+        withCredentials: true, // Ensure cookies are sent with the request
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
     return response.data;
   } catch (error) {
@@ -64,7 +85,7 @@ export const deleteZone = async (id: number): Promise<void> => {
   }
 
   try {
-    await axios.delete(`${API_URL}/${id}`, {
+    await axios.delete(`${API_BASE_URL}/activity-zones/${id}`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
   } catch (error) {

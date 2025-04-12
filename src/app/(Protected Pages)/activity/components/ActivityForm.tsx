@@ -1,20 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import ZoneSelector from "./ZoneSelector";
-import { UpdateActivityPayload } from "../types/activityTypes";
+import {
+  UpdateActivityFormData,
+  currentActivityPayload,
+  ScheduleItem,
+  AgeGroup,
+} from "../types/activityTypes";
 
 interface ActivityFormProps {
-  initialData?: UpdateActivityPayload;
-  onSave: (activity: any) => void;
+  initialData?: currentActivityPayload;
+  onSave: (
+    activity: UpdateActivityFormData,
+    thumbnailFile?: File,
+    galleryFiles?: File[],
+    schedules?: ScheduleItem[],
+    holidays?: string[],
+    selectedZones?: number[]
+  ) => void;
   onCancel: () => void;
-}
-interface ScheduleItem {
-  day: string;
-  start_time: string;
-  end_time: string;
-  is_24hours: boolean;
-  is_holiday: boolean;
 }
 
 const ActivityForm: React.FC<ActivityFormProps> = ({
@@ -22,80 +27,98 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
   onSave,
   onCancel,
 }) => {
-  console.log("Intial Data in activity form :", initialData);
-  // Process initialData for formData with defaults
-  const initializeFormData = () => {
-    if (!initialData) {
-      return {
-        id: 0,
-        activity_name: "",
-        base_price: "",
-        duration_hours: "",
-        start_date: "",
-        end_date: "",
-        is_active: false,
-      };
-    }
-    return {
-      id: initialData.id || 0,
-      activity_name: initialData.activity_name || "",
-      base_price: initialData.base_price || "",
-      duration_hours: initialData.duration_hours || "",
-      start_date: initialData.start_date
-        ? initialData.start_date.split("T")[0]
-        : "",
-      end_date: initialData.end_date ? initialData.end_date.split("T")[0] : "",
-      is_active: initialData.is_active || false,
-    };
-  };
+  console.log("Initial Data in activity form:", initialData);
 
-  const [formData, setFormData] = useState<any>(initializeFormData());
+  // Thumbnail handling
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
 
-  //Zone Selector
+  // Gallery handling
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(
+    initialData?.activity_image_gallery?.map(
+      (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL}${img}`
+    ) || []
+  );
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+
+  // Form State
+  const [formData, setFormData] = useState<UpdateActivityFormData>({
+    id: initialData?.id ?? 0,
+    activity_name: initialData?.activity_name ?? "",
+    base_price: initialData?.base_price?.toString() ?? "",
+    duration_hours: initialData?.duration_hours?.toString() ?? "",
+    start_date: initialData?.start_date?.split("T")[0] ?? "",
+    end_date: initialData?.end_date?.split("T")[0] ?? "",
+    is_active: initialData?.is_active ?? false,
+    booking_type: initialData?.booking_type ?? "",
+    // New fields
+    age_group: initialData?.age_group || undefined,
+    activity_tagline: initialData?.activity_tagline ?? "",
+    activity_description: initialData?.activity_description ?? "",
+    requires_waiver: initialData?.requires_waiver ?? false,
+    safety_instructions: initialData?.safety_instructions ?? "",
+    activity_thumbnail_image: initialData?.activity_thumbnail_image ?? null,
+    activity_image_gallery: initialData?.activity_image_gallery ?? null,
+  });
+
+  // Zone Selector
   const [selectedZones, setSelectedZones] = useState<number[]>(
-    initialData?.zones?.map((z: { id: number }) => z.id) || []
+    initialData?.zones?.map((z) => z.id) ?? []
   );
 
-  // Process initialData for schedules with defaults
-  const initializeSchedules = (): ScheduleItem[] => {
-    if (!initialData?.schedules) return [];
-    return initialData.schedules.map((s: any) => ({
-      day: s.day || "",
-      start_time: s.start_time || "",
-      end_time: s.end_time || "",
-      is_24hours: s.is_24hours || false,
-      is_holiday: s.is_holiday || false,
-    }));
-  };
-
+  // Schedules
   const [schedules, setSchedules] = useState<ScheduleItem[]>(
-    initializeSchedules()
+    initialData?.schedules?.map((s) => ({
+      day: s.day ?? "",
+      start_time: s.start_time ?? "",
+      end_time: s.end_time ?? "",
+      is_24hours: s.is_24hours ?? false,
+      is_holiday: s.is_holiday ?? false,
+    })) ?? []
   );
 
-  //Initialize Holidays
-  const initializeHolidays = (): string[] => {
-    if (!initialData?.holidays) return [];
-    return initialData.holidays.map((h: any) => h.date || "");
+  // Holidays
+  const [holidays, setHolidays] = useState<string[]>(
+    initialData?.holidays?.map((h) => h.date) ?? []
+  );
+
+  const handleThumbnailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
   };
 
-  const [holidays, setHolidays] = useState<string[]>(initializeHolidays());
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initializeFormData());
-      setSchedules(initializeSchedules());
-      setHolidays(initializeHolidays());
-      setSelectedZones(initialData.zones?.map((z: { id: any }) => z.id) || []);
+  const handleGalleryChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setGalleryFiles(files);
+      setGalleryPreviews(files.map((file) => URL.createObjectURL(file)));
+      // Clear existing backend gallery references
+      setFormData((prev) => ({
+        ...prev,
+        activity_image_gallery: null,
+      }));
     }
-  }, [initialData]);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev: any) => ({
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === "is_active" ? value === "true" : value,
+      [name]:
+        type === "number"
+          ? value === ""
+            ? ""
+            : parseFloat(value) // Allow empty string temporarily
+          : value === "true"
+          ? true
+          : value === "false"
+          ? false
+          : value,
     }));
   };
 
@@ -107,27 +130,20 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     value: string | boolean
   ) => {
     const updatedSchedules = [...schedules];
-
     if (field === "start_time" || field === "end_time") {
       updatedSchedules[index][field] = value as string;
     } else {
-      // Update the checkbox value
       updatedSchedules[index][field] = value as boolean;
-
-      // If 24H is selected, unselect Holiday and clear times
       if (field === "is_24hours" && value === true) {
         updatedSchedules[index].is_holiday = false;
         updatedSchedules[index].start_time = "";
         updatedSchedules[index].end_time = "";
-      }
-      // If Holiday is selected, unselect 24H and clear times
-      else if (field === "is_holiday" && value === true) {
+      } else if (field === "is_holiday" && value === true) {
         updatedSchedules[index].is_24hours = false;
         updatedSchedules[index].start_time = "";
         updatedSchedules[index].end_time = "";
       }
     }
-
     setSchedules(updatedSchedules);
   };
 
@@ -141,184 +157,379 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const submittedData = {
-      ...formData,
-      base_price: parseFloat(formData.base_price),
-      duration_hours: parseFloat(formData.duration_hours),
-      schedules,
-      holidays: holidays.map((date) => ({ date })),
-      zone_ids: selectedZones,
-    };
-    console.log("Update Act Data : ", submittedData);
-    onSave(submittedData);
+    try {
+      onSave(
+        formData,
+        thumbnailFile || undefined,
+        galleryFiles || undefined,
+        schedules,
+        holidays,
+        selectedZones
+      );
+    } catch (error: any) {
+      console.log("Update Error :", error);
+    }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {initialData ? "Edit Activity" : "Add New Activity"}
+    <div className="max-w-3xl mx-auto p-8 bg-white shadow-xl rounded-xl mt-6">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 border-blue-100 pb-4">
+        {initialData ? "Edit Activity" : "Create New Activity"}
       </h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Form Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Activity Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Activity Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="activity_name"
+              value={formData.activity_name}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+            />
+          </div>
+          {/* Base Price */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Base Price ($) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                $
+              </span>
+              <input
+                type="number"
+                name="base_price"
+                value={formData.base_price}
+                onChange={handleChange}
+                required
+                className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+              />
+            </div>
+          </div>
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Duration (Hours) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="duration_hours"
+                value={formData.duration_hours}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                hours
+              </span>
+            </div>
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Activity Name */}
+          {/* Booking Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Booking Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="booking_type"
+              value={formData.booking_type}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiYjNDA7N0M4QkQwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlsaW5lIHBvaW50cz0iNiA5IDEyIDE1IDE4IDkiPjwvcG9seWxpbmU+PC9zdmc+')] bg-no-repeat bg-[right_1rem_center]"
+            >
+              <option value="SLOT">Slot Booking</option>
+              <option value="ANYTIME">Book Anytime</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Range */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Start Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="start_date"
+              value={formData.start_date}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+            />
+          </div>
+          {/* End Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              End Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="end_date"
+              value={formData.end_date}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="is_active"
+              value={formData.is_active.toString()}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all "
+            >
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+
+          {/* Requires Waiver */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Requires Waver <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="requires_waiver"
+              value={formData.requires_waiver.toString()}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+            >
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Age Group */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Activity Name
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Age Group
+          </label>
+          <div className="relative">
+            <select
+              name="age_group"
+              value={formData.age_group || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyMCAyMCIgc3Ryb2tlPSIjNmI3MjgwIiBzdHJva2Utd2lkdGg9IjEuNSI+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNNiA4bDQgNCA0LTQiLz48L3N2Zz4=')] bg-no-repeat bg-[center_right_1rem]"
+            >
+              <option value="">Select Age Group</option>
+              {Object.values(AgeGroup).map((group) => (
+                <option key={group} value={group}>
+                  {group.charAt(0).toUpperCase() + group.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Activity Tagline */}
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Activity Tagline
           </label>
           <input
             type="text"
-            name="activity_name"
-            value={formData.activity_name}
+            name="activity_tagline"
+            value={formData.activity_tagline}
             onChange={handleChange}
-            required
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
         </div>
-        {/* Base Price */}
+
+        {/* Activity Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Base Price ($)
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Activity Description
           </label>
-          <input
-            type="number"
-            name="base_price"
-            value={formData.base_price}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          <textarea
+            name="activity_description"
+            onChange={(e) => handleChange(e as any)} // Workaround for textarea type
+            rows={4}
+            value={formData.activity_description}
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
         </div>
-        {/* Duration */}
+
+        {/* Safety Instructions */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Duration (Hours)
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Safety Instructions
           </label>
-          <input
-            type="number"
-            name="duration_hours"
-            value={formData.duration_hours}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          <textarea
+            name="safety_instructions"
+            onChange={(e) => handleChange(e as any)} // Workaround for textarea type
+            rows={2}
+            value={formData.safety_instructions}
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
-        </div>
-        {/* Start Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Start
-          </label>
-          <input
-            type="date"
-            name="start_date"
-            value={formData.start_date}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        {/* End Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            End Date
-          </label>
-          <input
-            type="date"
-            name="end_date"
-            value={formData.end_date}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Status
-          </label>
-          <select
-            name="is_active"
-            value={formData.is_active.toString()}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
         </div>
         {/* Zone Selector */}
-        <div className="mt-4">
+        <div className="mt-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
           <ZoneSelector
             onSelect={setSelectedZones}
             selectedZones={selectedZones}
           />
         </div>
+
+        <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+          {/* Thumbnail Image Section */}
+          <div className="space-y-2 mb-6">
+            <label className="block text-sm font-medium text-gray-700">
+              Thumbnail Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {(thumbnailPreview || formData.activity_thumbnail_image) && (
+              <img
+                src={
+                  thumbnailPreview ||
+                  `${process.env.NEXT_PUBLIC_API_BASE_URL}${formData.activity_thumbnail_image}`
+                }
+                alt="Thumbnail preview"
+                className="mt-2 h-32 w-32 object-cover rounded"
+              />
+            )}
+          </div>
+
+          {/* Gallery Images Section */}
+          <div className="space-y-2 mb-6">
+            <label className="block text-sm font-medium text-gray-700">
+              Gallery Images
+            </label>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleGalleryChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4">
+                {galleryPreviews.map((preview, index) => (
+                  <img
+                    key={index}
+                    src={preview}
+                    alt={`Gallery preview ${index + 1}`}
+                    className="h-24 w-24 object-cover rounded"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Activity Schedule */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-gray-50 p-6 rounded-xl">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">
             Activity Schedule
-          </label>
+          </h3>
           {schedules.map((item, index) => (
-            <div key={item.day} className="flex gap-4 items-center mb-2">
-              <span className="w-24">{item.day}</span>
-              <input
-                type="time"
-                value={item.start_time}
-                disabled={item.is_24hours || item.is_holiday}
-                onChange={(e) =>
-                  handleScheduleChange(index, "start_time", e.target.value)
-                }
-                className="p-2 border rounded w-32"
-              />
-              <input
-                type="time"
-                value={item.end_time}
-                disabled={item.is_24hours || item.is_holiday}
-                onChange={(e) =>
-                  handleScheduleChange(index, "end_time", e.target.value)
-                }
-                className="p-2 border rounded w-32"
-              />
-              <label className="flex items-center gap-1">
+            <div
+              key={item.day}
+              className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center mb-4 p-4 bg-white rounded-lg border border-gray-100"
+            >
+              <span className="font-medium text-gray-600">{item.day}</span>
+              <div className="flex gap-2">
                 <input
-                  type="checkbox"
-                  checked={item.is_24hours}
+                  type="time"
+                  name={`start_time_${index}`}
+                  value={item.start_time}
+                  disabled={item.is_24hours || item.is_holiday}
                   onChange={(e) =>
-                    handleScheduleChange(index, "is_24hours", e.target.checked)
+                    handleScheduleChange(index, "start_time", e.target.value)
                   }
-                  className="mt-1"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
                 />
-                24H
-              </label>
-              <label className="flex items-center gap-1">
                 <input
-                  type="checkbox"
-                  checked={item.is_holiday}
+                  type="time"
+                  name={`end_time_${index}`}
+                  value={item.end_time}
+                  disabled={item.is_24hours || item.is_holiday}
                   onChange={(e) =>
-                    handleScheduleChange(index, "is_holiday", e.target.checked)
+                    handleScheduleChange(index, "end_time", e.target.value)
                   }
-                  className="mt-1"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
                 />
-                Holiday
-              </label>
+              </div>
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    name={`is_24hours_${index}`}
+                    checked={item.is_24hours}
+                    onChange={(e) =>
+                      handleScheduleChange(
+                        index,
+                        "is_24hours",
+                        e.target.checked
+                      )
+                    }
+                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                  />
+                  24 Hours
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    name={`is_holiday_${index}`}
+                    checked={item.is_holiday}
+                    onChange={(e) =>
+                      handleScheduleChange(
+                        index,
+                        "is_holiday",
+                        e.target.checked
+                      )
+                    }
+                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                  />
+                  Holiday
+                </label>
+              </div>
             </div>
           ))}
         </div>
-        {/* Special Holidays */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+
+        {/* Activity Holiday Section */}
+        <div className="bg-gray-50 p-6 rounded-xl">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">
             Special Holidays
-          </label>
+          </h3>
           {holidays.map((date, index) => (
-            <div key={index} className="flex gap-2 items-center mb-2">
+            <div
+              key={index}
+              className="flex items-center gap-3 mb-4 p-4 bg-white rounded-lg border border-gray-100"
+            >
               <input
                 type="date"
+                name={`holiday_${index}`}
                 value={date}
                 onChange={(e) => updateHoliday(index, e.target.value)}
-                className="p-2 border rounded"
+                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
               />
               <button
                 type="button"
                 onClick={() => removeHoliday(index)}
-                className="text-red-500 hover:text-red-700"
+                className="px-4 py-2 text-red-500 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
               >
                 Remove
               </button>
@@ -327,25 +538,26 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
           <button
             type="button"
             onClick={addHoliday}
-            className="text-blue-500 hover:text-blue-700 mt-2"
+            className="px-4 py-2 text-blue-600 hover:text-blue-800 border border-blue-600 rounded-lg transition-colors"
           >
             + Add Holiday
           </button>
         </div>
+
         {/* Submit Buttons */}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-300 rounded-md"
+            className="px-6 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded-md"
+            className="px-6 py-2.5 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors font-medium shadow-sm hover:shadow-md"
           >
-            {initialData ? "Update Activity" : "Add Activity"}
+            {initialData ? "Save Changes" : "Create Activity"}
           </button>
         </div>
       </form>

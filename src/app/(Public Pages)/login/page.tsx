@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { loginUser } from './api/login';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -11,33 +12,21 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       setError('Please fill in both fields.');
       return;
     }
-
+  
     try {
-      const response = await fetch('http://localhost:3000/auth/login', {
-        method: 'POST',
-        credentials: 'include', // Important: Sends and receives cookies
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || 'Login failed');
-        return;
-      }
-      // Redirect to home page
-      router.push('/');
-      
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+      await loginUser(email, password);
+      router.push('/'); // Redirect to home page on successful login
+    } catch (err: any) {
+      // Handle specific error messages
+      setError(err.message || 'Login failed.');
     }
   };
-
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
