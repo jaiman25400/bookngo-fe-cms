@@ -5,13 +5,13 @@ import {
   CreateInventoryItem,
 } from "../types/InventoryTypes";
 
-const API_URL = "http://localhost:3000/inventory"; // Replace with actual API URL
+const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
 
 // Fetch all inventory items
 export const fetchInventories = async (): Promise<InventoryItem[]> => {
   try {
     console.log("Fetching inventory");
-    const response = await axios.get(`${API_URL}`, {
+    const response = await axios.get(`${API_BASE_URL}/inventory`, {
       withCredentials: true, // Ensure cookies are sent with the request
     });
     console.log("Fetcg Inv:", response);
@@ -23,13 +23,16 @@ export const fetchInventories = async (): Promise<InventoryItem[]> => {
 };
 
 // Add new inventory item
-export const addInventory = async (
-  inventory: CreateInventoryItem
-): Promise<CreateInventoryItem> => {
+export const addInventory = async (formData: FormData): Promise<any> => {
   try {
-    const response = await axios.post(`${API_URL}/add`, inventory, {
-      withCredentials: true, // Ensure cookies are sent with the request
-    });
+    console.log("Add Inventory Form DAta :", formData);
+    const response = await axios.post(
+      `${API_BASE_URL}/inventory/add`,
+      formData,
+      {
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error adding inventory:", error);
@@ -40,13 +43,20 @@ export const addInventory = async (
 // Update existing inventory item
 export const updateInventory = async (
   id: number,
-  inventory: UpdateInventoryItem
+  formData: any
 ): Promise<InventoryItem> => {
   try {
-    console.log("UPDATE INV ", id, inventory);
-    const response = await axios.put(`${API_URL}/${id}`, inventory, {
-      withCredentials: true, // Ensure cookies are sent with the request
-    });
+    console.log("UPDATE INV  API");
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+    const response = await axios.put(
+      `${API_BASE_URL}/inventory/${id}`,
+      formData,
+      {
+        withCredentials: true, // Ensure cookies are sent with the request
+      }
+    );
     console.log("Response Update DATA :", response.data);
     return response.data;
   } catch (error) {
@@ -63,7 +73,7 @@ export const deleteInventory = async (id: number): Promise<void> => {
   }
 
   try {
-    await axios.delete(`${API_URL}/${id}`, {
+    await axios.delete(`${API_BASE_URL}/inventory/${id}`, {
       withCredentials: true, // Ensure cookies are sent with the request
     }); // 🔄 Send ID as query param
   } catch (error) {

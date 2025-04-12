@@ -1,30 +1,33 @@
-"use client";
-
 import React from "react";
-
-interface Activity {
-  id: number;
-  activity_name: string;
-  base_price: number;
-  duration_hours: number;
-  is_active: boolean;
-}
+import { currentActivityPayload } from "../types/activityTypes";
 
 interface ActivityTableProps {
-  activities: Activity[];
-  onEdit: (activity: Activity) => void;
+  activities: currentActivityPayload[];
+  onEdit: (activity: currentActivityPayload) => void;
   onDelete: (id: number) => void;
 }
 
-const ActivityTable: React.FC<ActivityTableProps> = ({ activities, onEdit, onDelete }) => {
+const ActivityTable: React.FC<ActivityTableProps> = ({
+  activities,
+  onEdit,
+  onDelete,
+}) => {
+  console.log("Activity Tables : ", activities);
+
   return (
     <div className="p-4 bg-white shadow-lg rounded-lg overflow-x-auto">
       <table className="w-full table-auto border border-gray-300">
         <thead>
           <tr className="bg-gray-200 text-gray-700">
-            <th className="p-3 text-left border border-gray-300">Activity Name</th>
-            <th className="p-3 text-left border border-gray-300">Base Price ($)</th>
-            <th className="p-3 text-left border border-gray-300">Duration (Hours)</th>
+            <th className="p-3 text-left border border-gray-300">
+              Activity Name
+            </th>
+            <th className="p-3 text-left border border-gray-300">
+              Base Price ($)
+            </th>
+            <th className="p-3 text-left border border-gray-300">
+              Duration (Hours)
+            </th>
             <th className="p-3 text-left border border-gray-300">Status</th>
             <th className="p-3 text-left border border-gray-300">Actions</th>
           </tr>
@@ -32,10 +35,19 @@ const ActivityTable: React.FC<ActivityTableProps> = ({ activities, onEdit, onDel
         <tbody>
           {activities.length > 0 ? (
             activities.map((activity) => (
-              <tr key={activity.id} className="border border-gray-300 hover:bg-gray-100">
-                <td className="p-3 border border-gray-300">{activity.activity_name}</td>
-                <td className="p-3 border border-gray-300">${activity.base_price}</td>
-                <td className="p-3 border border-gray-300">{activity.duration_hours} hrs</td>
+              <tr
+                key={activity.id}
+                className="border border-gray-300 hover:bg-gray-100"
+              >
+                <td className="p-3 border border-gray-300">
+                  {activity.activity_name}
+                </td>
+                <td className="p-3 border border-gray-300">
+                  ${activity.base_price}
+                </td>
+                <td className="p-3 border border-gray-300">
+                  {activity.duration_hours} hrs
+                </td>
                 <td className="p-3 border border-gray-300">
                   {activity.is_active ? (
                     <span className="text-green-600 font-semibold">Active</span>
@@ -61,7 +73,10 @@ const ActivityTable: React.FC<ActivityTableProps> = ({ activities, onEdit, onDel
             ))
           ) : (
             <tr>
-              <td colSpan={5} className="text-center text-gray-500 py-6 border border-gray-300">
+              <td
+                colSpan={5}
+                className="text-center text-gray-500 py-6 border border-gray-300"
+              >
                 No activities found.
               </td>
             </tr>

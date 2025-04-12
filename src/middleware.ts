@@ -5,17 +5,8 @@ import { jwtVerify } from "jose";
 const publicPaths = ["/login", "/setup-password"];
 
 const roleRestrictedPaths: Record<string, string[]> = {
-  Manager: [
-    "/activity/add",
-    "/inventory/add",
-    "/zone/add",
-  ],
-  Team: [
-    "/activity/add",
-    "/inventory/add",
-    "/zone/add",
-    "/team/",
-  ],
+  Manager: ["/activity/add", "/inventory/add", "/zone/add"],
+  Team: ["/activity/add", "/inventory/add", "/zone/add", "/team/"],
 };
 
 function isRestricted(role: string, pathname: string): boolean {
@@ -43,7 +34,6 @@ export async function middleware(request: NextRequest) {
   try {
     const secretKey = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secretKey);
-    console.log("Token verified. Payload:", payload);
 
     const userRole = payload.role as string;
 
@@ -57,7 +47,6 @@ export async function middleware(request: NextRequest) {
       console.log(`${userRole} role not allowed to access ${pathname}`);
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
   } catch (error) {
     console.error("Error verifying token:", error);
     return NextResponse.redirect(new URL("/login", request.url));

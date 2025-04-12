@@ -6,7 +6,11 @@ import InventoryForm from "./components/InventoryForm";
 import DeleteModal from "./components/DeleteModal";
 import { InventoryItem } from "./types/InventoryTypes";
 import { useRouter } from "next/navigation";
-import { deleteInventory, fetchInventories, updateInventory } from "./api/Inventory";
+import {
+  deleteInventory,
+  fetchInventories,
+  updateInventory,
+} from "./api/Inventory";
 
 const InventoryPage = () => {
   const [inventories, setInventories] = useState<InventoryItem[]>([]);
@@ -34,24 +38,44 @@ const InventoryPage = () => {
     loadInventories();
   }, []);
 
-  const handleSave = async (item: InventoryItem) => {
+  const handleSave = async (item: InventoryItem, thumbnailFile?: File) => {
     console.log("SAVE BUTTON CLICKED:", item);
+    const formData = new FormData();
 
     try {
+      // Append the file if it exists
+      if (thumbnailFile) {
+        formData.append("thumbnail", thumbnailFile);
+      }
+
+      // Convert sizes array to JSON string
+      const cleanedSizes = item.sizes.map(
+        ({ size, description, quantity }) => ({
+          size,
+          description,
+          quantity,
+        })
+      );
+
+      // Append other fields
+      formData.append("equipment_name", item.equipment_name);
+      formData.append("totalQuantity", item.totalQuantity.toString());
+      formData.append("availableQuantity", item.availableQuantity.toString());
+      formData.append(
+        "rental_price_per_hour",
+        item.rental_price_per_hour.toString()
+      );
+      formData.append("description", item.description);
+      formData.append("sizes", JSON.stringify(cleanedSizes));
+
       if (item.id) {
-        const cleanedSizes = item.sizes.map(({ size, quantity, id }) =>
-          id ? { id, size, quantity } : { size, quantity }
-        );
-
-        const requestBody = {
-          equipment_name: item.equipment_name,
-          totalQuantity: item.totalQuantity,
-          availableQuantity: item.availableQuantity,
-          rental_price_per_hour: item.rental_price_per_hour,
-          sizes: cleanedSizes,
-        };
-
-        const updatedItem = await updateInventory(item.id, requestBody);
+        console.log('Update Formdata in Handle Save ')
+        for (const [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+        // Update existing inventory
+        const updatedItem = await updateInventory(item.id, formData);
+        console.log('Updat INV RES : ',updatedItem)
         if (updatedItem.id) {
           setInventories((prev) =>
             prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
