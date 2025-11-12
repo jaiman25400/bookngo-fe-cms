@@ -15,7 +15,7 @@ const SetupPassword = () => {
   const token = searchParams.get("token");
 
   useEffect(() => {
-    console.log("token :",token)
+    console.log("Set up pass get token :",token)
     if (!token) {
       router.replace("/"); // Redirects user if no token
     }

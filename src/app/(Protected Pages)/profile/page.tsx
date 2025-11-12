@@ -116,6 +116,9 @@ const ProfilePage = () => {
       formData.append("customer_state", profile.customer_state || "");
       formData.append("customer_zip", profile.customer_zip || "");
       formData.append("about_us", profile.about_us || "");
+      formData.append("customer_slug", profile.customer_slug || "");
+      formData.append("customer_longitude", profile.customer_longitude || "");
+      formData.append("customer_latitude", profile.customer_latitude || "");
       formData.append("features", profile.features || "");
 
       // Append home image
@@ -265,6 +268,48 @@ const ProfilePage = () => {
                     type="text"
                     name="customer_zip"
                     value={profile.customer_zip || ""}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Slug
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_slug"
+                    value={profile.customer_slug || ""}
+                    required
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Longitude
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_longitude"
+                    value={profile.customer_longitude || ""}
+                    required
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Latitude
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_latitude"
+                    value={profile.customer_latitude || ""}
+                    required
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />

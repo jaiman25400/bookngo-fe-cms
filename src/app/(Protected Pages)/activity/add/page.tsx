@@ -6,6 +6,7 @@ import { createActivity } from "../api/activity";
 import ZoneSelector from "../components/ZoneSelector";
 import {
   ActivityFormData,
+  ActivityType,
   AgeGroup,
 } from "../types/activityTypes";
 
@@ -15,8 +16,12 @@ export default function AddActivityPage() {
     activity_tagline: null,
     activity_description: "",
     age_group: undefined,
+    activity_type: undefined,
     base_price: null,
+    slot_interval_minutes: 30,
+    max_per_slot: 1,
     requires_waiver: false,
+    provides_rentals: false,
     safety_instructions: "",
     duration_hours: null,
     start_date: null,
@@ -79,12 +84,19 @@ export default function AddActivityPage() {
       if (formData.age_group) {
         formDataToSend.append("age_group", formData.age_group);
       }
+      if (formData.activity_type) {
+        formDataToSend.append("activity_type", formData.activity_type);
+      }
       if (formData.base_price !== null) {
         formDataToSend.append("base_price", formData.base_price.toString());
       }
       formDataToSend.append(
         "requires_waiver",
         formData.requires_waiver.toString()
+      );
+      formDataToSend.append(
+        "provides_rentals",
+        formData.provides_rentals.toString()
       );
       formDataToSend.append(
         "safety_instructions",
@@ -106,6 +118,11 @@ export default function AddActivityPage() {
       }
       formDataToSend.append("is_active", formData.is_active.toString());
       formDataToSend.append("booking_type", formData.booking_type);
+      formDataToSend.append(
+        "slot_interval_minutes",
+        formData.slot_interval_minutes.toString()
+      );
+      formDataToSend.append("max_per_slot", formData.max_per_slot.toString());
 
       // Append files
       if (formData.activity_thumbnail_image) {
@@ -129,6 +146,8 @@ export default function AddActivityPage() {
             day: s.day,
             start_time: s.start || null,
             end_time: s.end || null,
+            duration: s.duration || null,
+            price: s.price || null,
             is_24hours: s.is24Hours,
             is_holiday: s.isHoliday,
           }))
@@ -162,10 +181,18 @@ export default function AddActivityPage() {
     day: string;
     start: string;
     end: string;
+    duration: string;
+    price: string;
     is24Hours: boolean;
     isHoliday: boolean;
   }
-  type ScheduleField = "start" | "end" | "is24Hours" | "isHoliday";
+  type ScheduleField =
+    | "start"
+    | "end"
+    | "duration"
+    | "price"
+    | "is24Hours"
+    | "isHoliday";
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>(
     [
@@ -180,6 +207,8 @@ export default function AddActivityPage() {
       day,
       start: "",
       end: "",
+      duration: "",
+      price: "",
       is24Hours: false,
       isHoliday: false,
     }))
@@ -192,7 +221,12 @@ export default function AddActivityPage() {
   ) => {
     const updatedSchedule: ScheduleItem[] = [...schedule];
 
-    if (field === "start" || field === "end") {
+    if (
+      field === "start" ||
+      field === "end" ||
+      field === "duration" ||
+      field === "price"
+    ) {
       // Update time values directly
       updatedSchedule[index][field] = value as string;
     } else {
@@ -335,6 +369,42 @@ export default function AddActivityPage() {
               <option value="ANYTIME">Book Anytime</option>
             </select>
           </div>
+          {/* Time Slot Interval */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Time Slot Interval <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="slot_interval_minutes"
+                value={formData.slot_interval_minutes}
+                onChange={handleChange}
+                required
+                placeholder="e.g. 30"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                minutes
+              </span>
+            </div>
+          </div>
+
+          {/* Max Capacity Per Slot */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Max Capacity per Slot <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              name="max_per_slot"
+              value={formData.max_per_slot}
+              onChange={handleChange}
+              required
+              placeholder="e.g. 10"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+            />
+          </div>
         </div>
 
         {/* Date Range */}
@@ -407,6 +477,28 @@ export default function AddActivityPage() {
             >
               <option value="">Select Age Group</option>
               {Object.values(AgeGroup).map((group) => (
+                <option key={group} value={group}>
+                  {group.charAt(0).toUpperCase() + group.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Activity Type*/}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Activity Type
+          </label>
+          <div className="relative">
+            <select
+              name="activity_type"
+              value={formData.activity_type || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyMCAyMCIgc3Ryb2tlPSIjNmI3MjgwIiBzdHJva2Utd2lkdGg9IjEuNSI+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNNiA4bDQgNCA0LTQiLz48L3N2Zz4=')] bg-no-repeat bg-[center_right_1rem]"
+            >
+              <option value="">Select Activity_type</option>
+              {Object.values(ActivityType).map((group) => (
                 <option key={group} value={group}>
                   {group.charAt(0).toUpperCase() + group.slice(1)}
                 </option>
@@ -531,6 +623,22 @@ export default function AddActivityPage() {
           </select>
         </div>
 
+        {/* Provides Rentals  */}
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Provides Rentals <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="provides_rentals"
+            value={formData.provides_rentals.toString()}
+            onChange={handleChange}
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+          >
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+
         {/* Activity Schedule Section */}
         <div className="bg-gray-50 p-6 rounded-xl">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">
@@ -539,52 +647,99 @@ export default function AddActivityPage() {
           {schedule.map((item, index) => (
             <div
               key={item.day}
-              className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center mb-4 p-4 bg-white rounded-lg border border-gray-100"
+              className="mb-4 bg-white rounded-lg border border-gray-100"
             >
-              <span className="font-medium text-gray-600">{item.day}</span>
-              <div className="flex gap-2">
-                <input
-                  type="time"
-                  value={item.start}
-                  disabled={item.is24Hours || item.isHoliday}
-                  onChange={(e) =>
-                    handleScheduleChange(index, "start", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
-                />
-                <input
-                  type="time"
-                  value={item.end}
-                  disabled={item.is24Hours || item.isHoliday}
-                  onChange={(e) =>
-                    handleScheduleChange(index, "end", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
-                />
+              {/* First row */}
+              <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center p-4">
+                <span className="font-medium text-gray-600">{item.day}</span>
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={item.start}
+                    disabled={item.is24Hours || item.isHoliday}
+                    onChange={(e) =>
+                      handleScheduleChange(index, "start", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                  />
+                  <input
+                    type="time"
+                    value={item.end}
+                    disabled={item.is24Hours || item.isHoliday}
+                    onChange={(e) =>
+                      handleScheduleChange(index, "end", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div className="flex gap-4 items-center">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={item.is24Hours}
+                      onChange={(e) =>
+                        handleScheduleChange(
+                          index,
+                          "is24Hours",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                    />
+                    24 Hours
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={item.isHoliday}
+                      onChange={(e) =>
+                        handleScheduleChange(
+                          index,
+                          "isHoliday",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                    />
+                    Holiday
+                  </label>
+                </div>
               </div>
-              <div className="flex gap-4 items-center">
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={item.is24Hours}
-                    onChange={(e) =>
-                      handleScheduleChange(index, "is24Hours", e.target.checked)
-                    }
-                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
-                  />
-                  24 Hours
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={item.isHoliday}
-                    onChange={(e) =>
-                      handleScheduleChange(index, "isHoliday", e.target.checked)
-                    }
-                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
-                  />
-                  Holiday
-                </label>
+
+              {/* Second row for duration and price */}
+              <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-start px-4 pb-4">
+                <div></div> {/* Empty spacer for alignment with day label */}
+                <div className="flex gap-4 w-full">
+                  {/* Duration field */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Duration
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="3"
+                      value={item.duration}
+                      onChange={(e) =>
+                        handleScheduleChange(index, "duration", e.target.value)
+                      }
+                      className="px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Price field */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm text-gray-600 mb-1">Price</label>
+                    <input
+                      type="number"
+                      placeholder="100"
+                      value={item.price}
+                      onChange={(e) =>
+                        handleScheduleChange(index, "price", e.target.value)
+                      }
+                      className="px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ))}

@@ -4,12 +4,16 @@ export interface ActivityFormData {
   activity_description: string;
   age_group?: AgeGroup;
   base_price: number | null;
+  slot_interval_minutes: number;
+  max_per_slot: number;
   requires_waiver: boolean;
+  provides_rentals: boolean;
   safety_instructions: string;
   duration_hours: number | null;
   start_date?: string | null;
   end_date?: string | null;
   booking_type: string;
+  activity_type?: ActivityType;
   is_active: boolean;
   activity_thumbnail_image?: File;
   activity_image_gallery?: File[];
@@ -22,6 +26,14 @@ export enum AgeGroup {
   SENIOR = "50+",
 }
 
+export enum ActivityType {
+  SKIING = "skiing",
+  SKATING = "skating",
+  HIKING = "hiking",
+  SNOWBOARDING = "snowboarding",
+  TUBING = "tubing",
+}
+
 export interface CreateActivityPayload extends ActivityFormData {
   zone_id: number[];
   schedules: ActivitySchedulePayload[];
@@ -32,6 +44,8 @@ export interface ActivitySchedulePayload {
   day: string;
   start_time: string | null;
   end_time: string | null;
+  duration: string | null;
+  price: string | null;
   is_24hours: boolean;
   is_holiday: boolean;
 }
@@ -62,11 +76,15 @@ export interface UpdateActivityFormData {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  slot_interval_minutes: number;
+  max_per_slot: number;
   age_group?: AgeGroup;
+  activity_type?: ActivityType;
   booking_type: string;
   activity_tagline?: string;
   activity_description?: string;
   requires_waiver: boolean;
+  provides_rentals: boolean;
   safety_instructions?: string;
   activity_thumbnail_image?: string | null;
   activity_image_gallery?: string[] | null;
@@ -76,6 +94,8 @@ export interface ScheduleItem {
   day: string;
   start_time: string;
   end_time: string;
+  duration: string;
+  price: string;
   is_24hours: boolean;
   is_holiday: boolean;
 }
@@ -86,5 +106,3 @@ export interface currentActivityPayload extends UpdateActivityFormData {
   schedules: ActivitySchedulePayload[];
   holidays: ActivityHolidayPayload[];
 }
-
-

@@ -7,6 +7,7 @@ import {
   currentActivityPayload,
   ScheduleItem,
   AgeGroup,
+  ActivityType,
 } from "../types/activityTypes";
 
 interface ActivityFormProps {
@@ -51,11 +52,15 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     end_date: initialData?.end_date?.split("T")[0] ?? "",
     is_active: initialData?.is_active ?? false,
     booking_type: initialData?.booking_type ?? "",
+    slot_interval_minutes: initialData?.slot_interval_minutes || 30,
+    max_per_slot: initialData?.max_per_slot || 10,
     // New fields
     age_group: initialData?.age_group || undefined,
+    activity_type: initialData?.activity_type || undefined,
     activity_tagline: initialData?.activity_tagline ?? "",
     activity_description: initialData?.activity_description ?? "",
     requires_waiver: initialData?.requires_waiver ?? false,
+    provides_rentals: initialData?.provides_rentals ?? false,
     safety_instructions: initialData?.safety_instructions ?? "",
     activity_thumbnail_image: initialData?.activity_thumbnail_image ?? null,
     activity_image_gallery: initialData?.activity_image_gallery ?? null,
@@ -72,6 +77,8 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
       day: s.day ?? "",
       start_time: s.start_time ?? "",
       end_time: s.end_time ?? "",
+      duration: s.duration ?? "",
+      price: s.price ?? "",
       is_24hours: s.is_24hours ?? false,
       is_holiday: s.is_holiday ?? false,
     })) ?? []
@@ -122,7 +129,13 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     }));
   };
 
-  type ScheduleField = "start_time" | "end_time" | "is_24hours" | "is_holiday";
+  type ScheduleField =
+    | "start_time"
+    | "end_time"
+    | "duration"
+    | "price"
+    | "is_24hours"
+    | "is_holiday";
 
   const handleScheduleChange = (
     index: number,
@@ -130,7 +143,12 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     value: string | boolean
   ) => {
     const updatedSchedules = [...schedules];
-    if (field === "start_time" || field === "end_time") {
+    if (
+      field === "start_time" ||
+      field === "end_time" ||
+      field === "duration" ||
+      field === "price"
+    ) {
       updatedSchedules[index][field] = value as string;
     } else {
       updatedSchedules[index][field] = value as boolean;
@@ -248,6 +266,42 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
               <option value="ANYTIME">Book Anytime</option>
             </select>
           </div>
+          {/* Time Slot Interval */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Time Slot Interval <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="slot_interval_minutes"
+                value={formData.slot_interval_minutes}
+                onChange={handleChange}
+                required
+                placeholder="e.g. 30"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                hours
+              </span>
+            </div>
+          </div>
+
+          {/* Max Capacity per Slot */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Max Capacity per Slot <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              name="max_per_slot"
+              value={formData.max_per_slot}
+              onChange={handleChange}
+              required
+              placeholder="e.g. 10"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+            />
+          </div>
         </div>
 
         {/* Date Range */}
@@ -316,6 +370,22 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
         </div>
 
+        {/* Provide Rentals */}
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Provides Rentals <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="provides_rentals"
+            value={formData.provides_rentals.toString()}
+            onChange={handleChange}
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+          >
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+
         {/* Age Group */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -330,6 +400,28 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             >
               <option value="">Select Age Group</option>
               {Object.values(AgeGroup).map((group) => (
+                <option key={group} value={group}>
+                  {group.charAt(0).toUpperCase() + group.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Activity Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Activity Type
+          </label>
+          <div className="relative">
+            <select
+              name="activity_type"
+              value={formData.activity_type || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyMCAyMCIgc3Ryb2tlPSIjNmI3MjgwIiBzdHJva2Utd2lkdGg9IjEuNSI+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNNiA4bDQgNCA0LTQiLz48L3N2Zz4=')] bg-no-repeat bg-[center_right_1rem]"
+            >
+              <option value="">Select Age Group</option>
+              {Object.values(ActivityType).map((group) => (
                 <option key={group} value={group}>
                   {group.charAt(0).toUpperCase() + group.slice(1)}
                 </option>
@@ -443,67 +535,110 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
           <h3 className="text-lg font-semibold text-gray-700 mb-4">
             Activity Schedule
           </h3>
+
           {schedules.map((item, index) => (
-            <div
-              key={item.day}
-              className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center mb-4 p-4 bg-white rounded-lg border border-gray-100"
-            >
-              <span className="font-medium text-gray-600">{item.day}</span>
-              <div className="flex gap-2">
-                <input
-                  type="time"
-                  name={`start_time_${index}`}
-                  value={item.start_time}
-                  disabled={item.is_24hours || item.is_holiday}
-                  onChange={(e) =>
-                    handleScheduleChange(index, "start_time", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
-                />
-                <input
-                  type="time"
-                  name={`end_time_${index}`}
-                  value={item.end_time}
-                  disabled={item.is_24hours || item.is_holiday}
-                  onChange={(e) =>
-                    handleScheduleChange(index, "end_time", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
-                />
+            <div key={item.day} className="mb-6">
+              {/* First Row: Day, Time Inputs, Checkboxes */}
+              <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center p-4 bg-white rounded-lg border border-gray-100">
+                {/* Day Label */}
+                <span className="font-medium text-gray-600">{item.day}</span>
+
+                {/* Start & End Time Inputs */}
+                <div className="flex flex-col sm:flex-row gap-2 w-full">
+                  <input
+                    type="time"
+                    name={`start_time_${index}`}
+                    value={item.start_time}
+                    disabled={item.is_24hours || item.is_holiday}
+                    onChange={(e) =>
+                      handleScheduleChange(index, "start_time", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                  />
+                  <input
+                    type="time"
+                    name={`end_time_${index}`}
+                    value={item.end_time}
+                    disabled={item.is_24hours || item.is_holiday}
+                    onChange={(e) =>
+                      handleScheduleChange(index, "end_time", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex flex-wrap gap-4 items-center">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      name={`is_24hours_${index}`}
+                      checked={item.is_24hours}
+                      onChange={(e) =>
+                        handleScheduleChange(
+                          index,
+                          "is_24hours",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                    />
+                    24 Hours
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      name={`is_holiday_${index}`}
+                      checked={item.is_holiday}
+                      onChange={(e) =>
+                        handleScheduleChange(
+                          index,
+                          "is_holiday",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+                    />
+                    Holiday
+                  </label>
+                </div>
               </div>
-              <div className="flex gap-4 items-center">
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    name={`is_24hours_${index}`}
-                    checked={item.is_24hours}
-                    onChange={(e) =>
-                      handleScheduleChange(
-                        index,
-                        "is_24hours",
-                        e.target.checked
-                      )
-                    }
-                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
-                  />
-                  24 Hours
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    name={`is_holiday_${index}`}
-                    checked={item.is_holiday}
-                    onChange={(e) =>
-                      handleScheduleChange(
-                        index,
-                        "is_holiday",
-                        e.target.checked
-                      )
-                    }
-                    className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
-                  />
-                  Holiday
-                </label>
+
+              {/* Second Row: Duration and Price */}
+              <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4 items-start px-4 pt-2">
+                {/* Empty spacer to align with day label */}
+                <div></div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  {/* Duration */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm text-gray-600 mb-1">
+                      Duration
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="2"
+                      value={item.duration}
+                      onChange={(e) =>
+                        handleScheduleChange(index, "duration", e.target.value)
+                      }
+                      className="px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm text-gray-600 mb-1">Price</label>
+                    <input
+                      type="text"
+                      placeholder="100"
+                      value={item.price}
+                      onChange={(e) =>
+                        handleScheduleChange(index, "price", e.target.value)
+                      }
+                      className="px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ))}
