@@ -9,13 +9,13 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <UserProvider>
-      <html lang="en">
-        <body>
+    <html lang="en">
+      <body>
+        <UserProvider>
           <Navbar /> {/* Navbar is always visible */}
           <div>{children}</div>
-        </body>
-      </html>
-    </UserProvider>
+        </UserProvider>
+      </body>
+    </html>
   );
 }
