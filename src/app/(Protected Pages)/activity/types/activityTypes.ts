@@ -17,6 +17,8 @@ export interface ActivityFormData {
   is_active: boolean;
   activity_thumbnail_image?: File;
   activity_image_gallery?: File[];
+  redirect_to_external_website?: boolean;
+  external_booking_url?: string | null;
 }
 
 export enum AgeGroup {
@@ -88,6 +90,8 @@ export interface UpdateActivityFormData {
   safety_instructions?: string;
   activity_thumbnail_image?: string | null;
   activity_image_gallery?: string[] | null;
+  redirect_to_external_website?: boolean;
+  external_booking_url?: string | null;
 }
 
 export interface ScheduleItem {

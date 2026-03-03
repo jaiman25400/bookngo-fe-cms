@@ -21,12 +21,14 @@ interface ActivityFormProps {
     selectedZones?: number[]
   ) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 const ActivityForm: React.FC<ActivityFormProps> = ({
   initialData,
   onSave,
   onCancel,
+  isSaving = false,
 }) => {
   console.log("Initial Data in activity form:", initialData);
 
@@ -64,6 +66,8 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     safety_instructions: initialData?.safety_instructions ?? "",
     activity_thumbnail_image: initialData?.activity_thumbnail_image ?? null,
     activity_image_gallery: initialData?.activity_image_gallery ?? null,
+    redirect_to_external_website: initialData?.redirect_to_external_website ?? false,
+    external_booking_url: initialData?.external_booking_url ?? "",
   });
 
   // Zone Selector
@@ -190,10 +194,12 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8 bg-white shadow-xl rounded-xl mt-6">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 border-blue-100 pb-4">
-        {initialData ? "Edit Activity" : "Create New Activity"}
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+        <h2 className="text-2xl font-bold text-gray-900">
+          {initialData ? "Edit Activity" : "Create New Activity"}
+        </h2>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Form Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -282,7 +288,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                hours
+                minutes
               </span>
             </div>
           </div>
@@ -384,6 +390,48 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             <option value="true">Yes</option>
             <option value="false">No</option>
           </select>
+        </div>
+
+        {/* Redirect to external website */}
+        <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-700">External booking</h3>
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="redirect_to_external_website"
+                checked={formData.redirect_to_external_website ?? false}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    redirect_to_external_website: e.target.checked,
+                  }))
+                }
+                className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-300"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Redirect “Book now” to external website
+              </span>
+            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              When enabled, users are sent to the external booking URL instead of the in-app flow.
+            </p>
+          </div>
+          {(formData.redirect_to_external_website ?? false) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                External booking URL
+              </label>
+              <input
+                type="url"
+                name="external_booking_url"
+                value={formData.external_booking_url ?? ""}
+                onChange={handleChange}
+                placeholder="https://..."
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
+              />
+            </div>
+          )}
         </div>
 
         {/* Age Group */}
@@ -680,19 +728,31 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+        <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={isSaving}
+            className="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2.5 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors font-medium shadow-sm hover:shadow-md"
+            disabled={isSaving}
+            className="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {initialData ? "Save Changes" : "Create Activity"}
+            {isSaving ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              initialData ? "Save Changes" : "Create Activity"
+            )}
           </button>
         </div>
       </form>
