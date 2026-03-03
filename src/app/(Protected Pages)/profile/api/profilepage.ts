@@ -1,19 +1,47 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { ProfileData } from "../types/profileTypes";
 
 const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
 
+interface ApiError {
+  message: string;
+  status?: number;
+  isNetworkError?: boolean;
+}
+
 export const fetchProfileData = async (): Promise<ProfileData> => {
-  // Changed to single object
   try {
     const response = await axios.get(`${API_BASE_URL}/customers/profile`, {
       withCredentials: true,
+      timeout: 10000,
     });
-    console.log('Fetch Profile Data :',response)
-    return response.data;
+    return response.data || {};
   } catch (error) {
-    console.error("Error fetching profile:", error);
-    throw new Error("Failed to fetch profile");
+    const axiosError = error as AxiosError;
+    
+    if (axiosError.response) {
+      const status = axiosError.response.status;
+      const data = axiosError.response.data as any;
+      
+      const apiError: ApiError = {
+        message: data?.message || `Failed to fetch profile (${status})`,
+        status,
+        isNetworkError: false,
+      };
+      throw apiError;
+    } else if (axiosError.request) {
+      const apiError: ApiError = {
+        message: 'Unable to connect to the server. Please check your connection.',
+        isNetworkError: true,
+      };
+      throw apiError;
+    } else {
+      const apiError: ApiError = {
+        message: axiosError.message || 'An unexpected error occurred.',
+        isNetworkError: false,
+      };
+      throw apiError;
+    }
   }
 };
 
@@ -40,22 +68,43 @@ export const createProfileData = async (formData: FormData): Promise<any> => {
 
 export const updateProfileData = async (formData: FormData): Promise<any> => {
   try {
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
-
     const response = await axios.put(
       `${API_BASE_URL}/customers/profile`,
       formData,
       {
         withCredentials: true,
+        timeout: 30000,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }
     );
 
     return response.data;
   } catch (error) {
-    console.error("Error updating profile:", error);
-    throw new Error("Failed to update profile");
+    const axiosError = error as AxiosError;
+    
+    if (axiosError.response) {
+      const data = axiosError.response.data as any;
+      const apiError: ApiError = {
+        message: data?.message || 'Failed to update profile',
+        status: axiosError.response.status,
+        isNetworkError: false,
+      };
+      throw apiError;
+    } else if (axiosError.request) {
+      const apiError: ApiError = {
+        message: 'Network error. Please check your connection.',
+        isNetworkError: true,
+      };
+      throw apiError;
+    } else {
+      const apiError: ApiError = {
+        message: axiosError.message || 'Failed to update profile',
+        isNetworkError: false,
+      };
+      throw apiError;
+    }
   }
 };
 

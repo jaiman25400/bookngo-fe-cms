@@ -1,11 +1,13 @@
 "use client";
 
-import React, { ChangeEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter to navigate programmatically
+import React, { ChangeEvent, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { CreateZoneFormData, AgeGroup, ZoneStatus } from "../types/ZoneTypes";
 import { addZone } from "../api/zone";
+import Notification from "@/components/Notification";
 
 export default function AddZonePage() {
+  const router = useRouter();
   const [formData, setFormData] = useState<CreateZoneFormData>({
     name: "",
     description: "",
@@ -22,8 +24,19 @@ export default function AddZonePage() {
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const router = useRouter();
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    visible: boolean;
+  }>({ message: '', type: 'info', visible: false });
+
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setNotification({ message, type, visible: true });
+  }, []);
+
+  const hideNotification = useCallback(() => {
+    setNotification((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   // Cleanup object URLs
   useEffect(() => {
@@ -77,11 +90,13 @@ export default function AddZonePage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccessMessage(null);
+    setNotification({ message: '', type: 'info', visible: false });
 
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
-      setError(validationErrors.join(", "));
+      const errorMsg = validationErrors.join(", ");
+      setError(errorMsg);
+      showNotification(errorMsg, 'error');
       setLoading(false);
       return;
     }
@@ -89,12 +104,10 @@ export default function AddZonePage() {
     try {
       const formPayload = new FormData();
 
-      // Required fields
       formPayload.append("name", formData.name);
       formPayload.append("description", formData.description);
       formPayload.append("status", formData.status);
 
-      // Optional fields
       if (formData.capacity) formPayload.append("capacity", formData.capacity);
       if (formData.price) formPayload.append("price", formData.price);
       if (formData.age_group)
@@ -102,7 +115,6 @@ export default function AddZonePage() {
       if (formData.zone_tagline)
         formPayload.append("zone_tagline", formData.zone_tagline);
 
-      // File handling
       if (formData.zone_thumbnail_image) {
         formPayload.append(
           "zone_thumbnail_image",
@@ -116,48 +128,52 @@ export default function AddZonePage() {
       }
 
       await addZone(formPayload);
-      setSuccessMessage("Zone created successfully!");
-      setTimeout(() => router.push("/zone"), 1500);
-    } catch (error) {
-      console.error("Submission error:", error);
-      setError("Failed to create zone");
+      showNotification("Zone created successfully! Redirecting...", 'success');
+      setTimeout(() => router.push("/zone"), 2000);
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to create zone. Please try again.";
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8 bg-white shadow-xl rounded-xl mt-10 border border-gray-100">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800 border-b-2 border-blue-100 pb-4">
-        Create New Zone
-      </h2>
-
-      {/* Status Messages */}
-      {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700">
-          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <strong>{successMessage}</strong>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              onClick={() => router.push("/zone")}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Go back"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">Create New Zone</h1>
+          </div>
+          <p className="text-gray-600 text-sm ml-12">
+            Add a new activity zone with all necessary details
+          </p>
         </div>
-      )}
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
-          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <strong>{error}</strong>
-        </div>
-      )}
+        {/* Error Banner */}
+        {error && !notification.visible && (
+          <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded-lg mb-6 animate-fade-in">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
 
       <form
         onSubmit={handleSubmit}
@@ -360,45 +376,50 @@ export default function AddZonePage() {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-6 border-t border-gray-100">
-          <button
-            type="submit"
-            className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all ${
-              loading ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg"
-            }`}
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              "Create Zone"
-            )}
-          </button>
+          {/* Submit Button */}
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => router.push("/zone")}
+              disabled={loading}
+              className="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Zone
+                </>
+              )}
+            </button>
+          </div>
+        </form>
         </div>
-      </form>
+
+        {/* Notification Toast */}
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.visible}
+          onClose={hideNotification}
+        />
+      </div>
     </div>
   );
 }

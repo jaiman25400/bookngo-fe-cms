@@ -7,12 +7,14 @@ interface InventoryFormProps {
   initialData?: InventoryItem | null;
   onSave: (item: InventoryItem, thumbnailFile?: File) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 const InventoryForm: React.FC<InventoryFormProps> = ({
   initialData,
   onSave,
   onCancel,
+  isSaving = false,
 }) => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -90,10 +92,12 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
-        {initialData ? "Edit Inventory" : "Add New Inventory"}
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+        <h2 className="text-2xl font-bold text-gray-900">
+          {initialData ? "Edit Inventory" : "Add New Inventory"}
+        </h2>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Equipment Name */}
@@ -266,19 +270,31 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
         </div>
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t">
+        <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            disabled={isSaving}
+            className="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+            disabled={isSaving}
+            className="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {initialData ? "Update Inventory" : "Create Inventory"}
+            {isSaving ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              initialData ? "Update Inventory" : "Create Inventory"
+            )}
           </button>
         </div>
       </form>
