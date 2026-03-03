@@ -1,12 +1,27 @@
 "use client";
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useCallback } from "react";
 import { ProfileData } from "./types/profileTypes";
 import { fetchProfileData, updateProfileData } from "./api/profilepage";
+import Notification from "@/components/Notification";
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState<ProfileData>({});
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    visible: boolean;
+  }>({ message: '', type: 'info', visible: false });
+
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setNotification({ message, type, visible: true });
+  }, []);
+
+  const hideNotification = useCallback(() => {
+    setNotification((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   // Home image handling
   const [homeImagePreview, setHomeImagePreview] = useState<string | null>(null);
@@ -19,32 +34,35 @@ const ProfilePage = () => {
   useEffect(() => {
     const getProfileData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const data = await fetchProfileData();
-        setProfile(data);
+        setProfile(data || {});
 
         // Set initial image previews
         if (data.home_image_url) {
           setHomeImagePreview(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}${data.home_image_url}`
+            `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${data.home_image_url}`
           );
         }
         if (data.home_image_gallery) {
           setGalleryPreviews(
             data.home_image_gallery.map(
-              (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL}${img}`
+              (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${img}`
             )
           );
         }
-
-        setLoading(false);
-      } catch (error) {
-        setError("Failed to fetch profile");
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to fetch profile";
+        setError(errorMessage);
+        showNotification(errorMessage, 'error');
+      } finally {
         setLoading(false);
       }
     };
 
     getProfileData();
-  }, []);
+  }, [showNotification]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -93,6 +111,7 @@ const ProfilePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSaving(true);
 
     try {
       const formData = new FormData();
@@ -116,6 +135,9 @@ const ProfilePage = () => {
       formData.append("customer_state", profile.customer_state || "");
       formData.append("customer_zip", profile.customer_zip || "");
       formData.append("about_us", profile.about_us || "");
+      formData.append("customer_slug", profile.customer_slug || "");
+      formData.append("customer_longitude", profile.customer_longitude || "");
+      formData.append("customer_latitude", profile.customer_latitude || "");
       formData.append("features", profile.features || "");
 
       // Append home image
@@ -135,7 +157,6 @@ const ProfilePage = () => {
       setProfile((prev) => ({
         ...prev,
         ...updatedProfile,
-        // Merge existing gallery with new gallery if needed
         home_image_gallery:
           updatedProfile.home_image_gallery || prev.home_image_gallery,
       }));
@@ -143,7 +164,7 @@ const ProfilePage = () => {
       // Reset file states and previews with server URLs
       if (updatedProfile.home_image_url) {
         setHomeImagePreview(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}${updatedProfile.home_image_url}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${updatedProfile.home_image_url}`
         );
         setHomeImageFile(null);
       }
@@ -151,29 +172,58 @@ const ProfilePage = () => {
       if (updatedProfile.home_image_gallery) {
         setGalleryPreviews(
           updatedProfile.home_image_gallery.map(
-            (img: any) => `${process.env.NEXT_PUBLIC_API_BASE_URL}${img}`
+            (img: any) => `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${img}`
           )
         );
         setGalleryFiles([]);
       }
 
-      // Show success feedback
-      console.log("✅ Profile updated successfully:", updatedProfile);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      setError("Failed to update profile. Please try again.");
+      showNotification("Profile updated successfully!", 'success');
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to update profile. Please try again.";
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl mb-4">Profile Management</h1>
-      {loading ? (
-        <p>Loading Profile...</p>
-      ) : error ? (
-        <p className="text-red-600">{error}</p>
-      ) : (
-        <div className="max-w-3xl mx-auto p-8 bg-white shadow-xl rounded-xl mt-10 border border-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile Management</h1>
+          <p className="text-gray-600 text-sm">
+            Update your business profile and information
+          </p>
+        </div>
+
+        {/* Error Banner */}
+        {error && !notification.visible && (
+          <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded-lg mb-6 animate-fade-in">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+            <div className="flex flex-col items-center justify-center">
+              <svg className="animate-spin h-12 w-12 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="text-gray-600 font-medium">Loading profile...</p>
+            </div>
+          </div>
+        ) : (
+        <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl border border-gray-200 p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,6 +320,48 @@ const ProfilePage = () => {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Slug
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_slug"
+                    value={profile.customer_slug || ""}
+                    required
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Longitude
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_longitude"
+                    value={profile.customer_longitude || ""}
+                    required
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Latitude
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_latitude"
+                    value={profile.customer_latitude || ""}
+                    required
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
                 {/* Long Text Fields */}
                 <div className="col-span-full">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -346,15 +438,35 @@ const ProfilePage = () => {
               <div className="pt-6 border-t border-gray-100 flex justify-end gap-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:shadow-lg"
+                  disabled={isSaving}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Update Profile
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Profile'
+                  )}
                 </button>
               </div>
             </div>
           </form>
         </div>
-      )}
+        )}
+
+        {/* Notification Toast */}
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.visible}
+          onClose={hideNotification}
+        />
+      </div>
     </div>
   );
 };

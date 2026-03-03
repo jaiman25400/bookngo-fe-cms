@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
 
   // Allow public paths without authentication
   if (publicPaths.some((path) => pathname.startsWith(path))) {
+    console.log('Middleware Public ::')
     return NextResponse.next();
   }
 
