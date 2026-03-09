@@ -1,8 +1,15 @@
 // utils/api.ts
 import axios from 'axios';
 
+// Prefer public URL so it is available in the browser bundle,
+// but still fall back to server-only env for SSR if needed.
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.SERVER_API_BASE_URL ||
+  'http://localhost:3000';
+
 const api = axios.create({
-  baseURL: process.env.SERVER_API_BASE_URL || 'http://localhost:3000',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 

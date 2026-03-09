@@ -328,8 +328,12 @@ export default function NewBookingPage() {
       };
 
       console.log('Create Booking - API Call:', {
-        endpoint: `${process.env.SERVER_API_BASE_URL || 'http://localhost:3000'}/cms/bookings/proceedToCheckout`,
-        request: bookingRequest
+        endpoint: `${
+          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          process.env.SERVER_API_BASE_URL ||
+          'http://localhost:3000'
+        }/cms/bookings/proceedToCheckout`,
+        request: bookingRequest,
       });
 
       const response = await createBooking(bookingRequest);
@@ -392,7 +396,11 @@ export default function NewBookingPage() {
     try {
       console.log('Confirm Payment - API Call:', {
         bookingId,
-        endpoint: `${process.env.SERVER_API_BASE_URL || 'http://localhost:3000'}/cms/bookings/confirmBooking`
+        endpoint: `${
+          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          process.env.SERVER_API_BASE_URL ||
+          'http://localhost:3000'
+        }/cms/bookings/confirmBooking`,
       });
 
       // API Call: POST /cms/bookings/confirmBooking
