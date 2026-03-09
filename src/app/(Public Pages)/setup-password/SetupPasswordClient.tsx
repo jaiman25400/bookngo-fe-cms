@@ -48,8 +48,13 @@ const SetupPasswordClient = () => {
 
     try {
       setLoading(true);
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        process.env.SERVER_API_BASE_URL ||
+        "http://localhost:3000";
+
       const response = await fetch(
-        "http://localhost:3000/customer-users/set-password",
+        `${baseUrl}/customer-users/set-password`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
