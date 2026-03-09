@@ -1,6 +1,9 @@
 import axios, { AxiosError } from "axios";
 
-const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.SERVER_API_BASE_URL ||
+  "http://localhost:3000";
 
 interface LoginError {
   message: string;

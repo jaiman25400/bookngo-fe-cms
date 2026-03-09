@@ -15,7 +15,10 @@ export type CustomerUser = {
   created_at: string;
 };
 
-const API_BASE_URL = process.env.SERVER_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.SERVER_API_BASE_URL ||
+  "http://localhost:3000";
 
 // Fetch all team members
 export const getTeamMembers = async (): Promise<CustomerUser[]> => {

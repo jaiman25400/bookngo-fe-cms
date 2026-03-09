@@ -23,7 +23,12 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:3000/auth/logout", {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        process.env.SERVER_API_BASE_URL ||
+        "http://localhost:3000";
+
+      await fetch(`${baseUrl}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
