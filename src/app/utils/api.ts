@@ -13,6 +13,12 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Debug: log the API base URL on the client
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.log("[API] Base URL =", API_BASE_URL);
+}
+
 // Attach Authorization header from localStorage token on the client,
 // so backend can also read JWT from Authorization if needed.
 if (typeof window !== "undefined") {
@@ -21,6 +27,8 @@ if (typeof window !== "undefined") {
     const bearer = `Bearer ${token}`;
     api.defaults.headers.common["Authorization"] = bearer;
     axios.defaults.headers.common["Authorization"] = bearer;
+    // eslint-disable-next-line no-console
+    console.log("[API] Authorization header set from localStorage token");
   }
 }
 
@@ -28,8 +36,14 @@ if (typeof window !== "undefined") {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const handledCodes = [400, 401, 403, 404, 409, 422];
-    
+    // eslint-disable-next-line no-console
+    console.error("[API] Request error", {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+
     if (error.response) {
       // Handle HTTP errors with responses
       return Promise.reject({
