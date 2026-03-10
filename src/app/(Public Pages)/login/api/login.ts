@@ -6,6 +6,12 @@ const API_BASE_URL =
   process.env.SERVER_API_BASE_URL ||
   "http://localhost:3000";
 
+// Debug: log which base URL login is using (will show in browser console)
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.log("[Login] API_BASE_URL =", API_BASE_URL);
+}
+
 interface LoginError {
   message: string;
   status?: number;
@@ -14,6 +20,12 @@ interface LoginError {
 
 export const loginUser = async (email: string, password: string) => {
   try {
+    // eslint-disable-next-line no-console
+    console.log("[Login] Sending login request", {
+      baseURL: API_BASE_URL,
+      email,
+    });
+
     const response = await axios.post(
       `${API_BASE_URL}/auth/login`,
       { email, password },
@@ -27,6 +39,12 @@ export const loginUser = async (email: string, password: string) => {
     );
 
     const data = response.data as any;
+    // eslint-disable-next-line no-console
+    console.log("[Login] Response received", {
+      status: response.status,
+      dataKeys: data && typeof data === "object" ? Object.keys(data) : typeof data,
+    });
+
     const token =
       data?.accessToken ||
       data?.access_token ||
@@ -36,6 +54,8 @@ export const loginUser = async (email: string, password: string) => {
     if (token && typeof window !== "undefined") {
       try {
         window.localStorage.setItem("cms_token", token);
+        // eslint-disable-next-line no-console
+        console.log("[Login] Token stored in localStorage and set on axios defaults");
       } catch {
         // ignore storage errors
       }
