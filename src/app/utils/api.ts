@@ -13,6 +13,17 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Attach Authorization header from localStorage token on the client,
+// so backend can also read JWT from Authorization if needed.
+if (typeof window !== "undefined") {
+  const token = window.localStorage.getItem("cms_token");
+  if (token) {
+    const bearer = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = bearer;
+    axios.defaults.headers.common["Authorization"] = bearer;
+  }
+}
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
