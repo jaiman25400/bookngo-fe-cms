@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import api from "@/app/utils/api";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -25,7 +26,24 @@ export const loginUser = async (email: string, password: string) => {
       }
     );
 
-    return response.data; // Return the response payload
+    const data = response.data as any;
+    const token =
+      data?.accessToken ||
+      data?.access_token ||
+      data?.token;
+
+    // Persist token client-side and attach as Authorization header
+    if (token && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem("cms_token", token);
+      } catch {
+        // ignore storage errors
+      }
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+
+    return data; // Return the response payload
   } catch (error) {
     const axiosError = error as AxiosError;
     
