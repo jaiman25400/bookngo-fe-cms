@@ -32,6 +32,11 @@ export default function Navbar() {
         method: "POST",
         credentials: "include",
       });
+      try {
+        window.localStorage.removeItem("cms_token");
+      } catch {
+        /* ignore */
+      }
       window.location.href = "/login"; // Full page reload to clear state
     } catch (error) {
       console.error("Logout error:", error);

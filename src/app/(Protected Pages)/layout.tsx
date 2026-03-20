@@ -1,5 +1,6 @@
 import "../styles/globals.css";
-import Navbar from "../../components/Navbar"; // Import Navbar
+import Navbar from "../../components/Navbar";
+import AuthGate from "./AuthGate";
 
 export const metadata = {
   title: "BookNGo",
@@ -10,8 +11,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-          <Navbar /> {/* Navbar is always visible */}
+        <AuthGate>
+          <Navbar />
           <div>{children}</div>
+        </AuthGate>
       </body>
     </html>
   );

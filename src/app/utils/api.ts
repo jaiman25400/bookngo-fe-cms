@@ -13,6 +13,29 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const TOKEN_KEY = "cms_token";
+
+/** Clear session and go to login when API returns 401 (expired / invalid token). */
+function redirectToLoginIfUnauthorized(error: unknown): boolean {
+  if (typeof window === "undefined") return false;
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  if (status !== 401) return false;
+
+  try {
+    window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+  delete axios.defaults.headers.common.Authorization;
+  delete api.defaults.headers.common.Authorization;
+
+  const path = window.location.pathname;
+  if (!path.startsWith("/login") && !path.startsWith("/setup-password")) {
+    window.location.replace("/login");
+  }
+  return true;
+}
+
 // Debug: log the API base URL on the client
 if (typeof window !== "undefined") {
   // eslint-disable-next-line no-console
@@ -32,10 +55,28 @@ if (typeof window !== "undefined") {
   }
 }
 
+// Same-origin CMS calls also use the default `axios` instance (e.g. dashboard.ts).
+let axios401Registered = false;
+if (typeof window !== "undefined" && !axios401Registered) {
+  axios401Registered = true;
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (redirectToLoginIfUnauthorized(error)) {
+        return Promise.reject(error);
+      }
+      return Promise.reject(error);
+    }
+  );
+}
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (redirectToLoginIfUnauthorized(error)) {
+      return Promise.reject(error);
+    }
     // eslint-disable-next-line no-console
     console.error("[API] Request error", {
       url: error.config?.url,
