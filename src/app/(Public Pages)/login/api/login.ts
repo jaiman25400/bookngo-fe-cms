@@ -20,36 +20,64 @@ interface LoginError {
 
 function pickTokenFromObject(obj: Record<string, unknown> | undefined) {
   if (!obj) return undefined;
-  const v = obj.accessToken ?? obj.access_token ?? obj.token ?? obj.jwt;
+  const v =
+    obj.accessToken ??
+    obj.access_token ??
+    obj.token ??
+    obj.jwt ??
+    obj.authToken ??
+    obj.auth_token ??
+    obj.sessionToken ??
+    obj.session_token ??
+    obj.bearerToken ??
+    obj.bearer_token;
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
-/** Backend may return JWT at root, under `data`, `data.user`, or `data.tokens`. */
+/** Three dot-separated base64url segments — catches JWTs under any JSON key. */
+function isLikelyJwt(value: string): boolean {
+  if (value.length < 40) return false;
+  const parts = value.split(".");
+  if (parts.length !== 3) return false;
+  return parts.every((p) => p.length >= 4);
+}
+
+/**
+ * Walk the JSON tree: known token fields first per object, then recurse.
+ * Handles wrappers like `{ user: {...} }`, `{ result: { token } }`, not only `data`.
+ */
+function findTokenInValue(value: unknown, depth: number): string | undefined {
+  if (depth > 10) return undefined;
+  if (value === null || value === undefined) return undefined;
+
+  if (typeof value === "string") {
+    return isLikelyJwt(value) ? value : undefined;
+  }
+
+  if (typeof value !== "object") return undefined;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findTokenInValue(item, depth + 1);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  const obj = value as Record<string, unknown>;
+  const direct = pickTokenFromObject(obj);
+  if (direct) return direct;
+
+  for (const key of Object.keys(obj)) {
+    const found = findTokenInValue(obj[key], depth + 1);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 function extractAccessToken(payload: unknown): string | undefined {
   if (!payload || typeof payload !== "object") return undefined;
-  const root = payload as Record<string, unknown>;
-  const fromRoot = pickTokenFromObject(root);
-  if (fromRoot) return fromRoot;
-
-  const inner = root.data;
-  if (!inner || typeof inner !== "object") return undefined;
-  const data = inner as Record<string, unknown>;
-  const fromData = pickTokenFromObject(data);
-  if (fromData) return fromData;
-
-  const user = data.user;
-  if (user && typeof user === "object") {
-    const fromUser = pickTokenFromObject(user as Record<string, unknown>);
-    if (fromUser) return fromUser;
-  }
-
-  const tokens = data.tokens;
-  if (tokens && typeof tokens === "object") {
-    const fromTokens = pickTokenFromObject(tokens as Record<string, unknown>);
-    if (fromTokens) return fromTokens;
-  }
-
-  return undefined;
+  return findTokenInValue(payload, 0);
 }
 
 function persistCmsToken(token: string) {
@@ -94,7 +122,17 @@ export const loginUser = async (email: string, password: string) => {
       dataKeys: data && typeof data === "object" ? Object.keys(data) : typeof data,
     });
 
-    const token = extractAccessToken(data);
+    let token = extractAccessToken(data);
+
+    if (!token) {
+      const rawAuth =
+        response.headers["authorization"] ??
+        (response.headers as Record<string, string | undefined>)["Authorization"];
+      if (typeof rawAuth === "string") {
+        const m = rawAuth.match(/^Bearer\s+(\S+)/i);
+        if (m?.[1]) token = m[1];
+      }
+    }
 
     if (typeof window !== "undefined") {
       if (token) {
@@ -104,10 +142,23 @@ export const loginUser = async (email: string, password: string) => {
         // eslint-disable-next-line no-console
         console.log("[Login] Token stored and set on axios defaults");
       } else {
+        const topKeys =
+          data && typeof data === "object" && !Array.isArray(data)
+            ? Object.keys(data as object).join(", ")
+            : "(non-object)";
         // eslint-disable-next-line no-console
         console.warn(
-          "[Login] No JWT in login response body; AuthGate requires cms_token. Check API JSON shape or use cookie + /me flow."
+          "[Login] No JWT found in JSON. Top-level keys:",
+          topKeys,
+          "— CMS needs accessToken (or similar) in the body, or httpOnly session + /auth/me."
         );
+        const loginError: LoginError = {
+          message:
+            "Signed in on the server, but no access token was returned for this app. Your API must include a JWT in the login JSON (recommended: accessToken) or the CMS must be updated for cookie-only sessions.",
+          status: response.status,
+          isNetworkError: false,
+        };
+        throw loginError;
       }
     }
 
