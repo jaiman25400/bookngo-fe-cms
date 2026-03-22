@@ -1,30 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { CMS_TOKEN_KEY } from "@/app/utils/api";
+import { checkCmsAuthSession } from "@/app/utils/api";
 
 /**
- * Blocks protected UI until we confirm a CMS token exists; otherwise sends the user to login.
- * Middleware cannot read localStorage, so this runs on the client.
+ * CMS uses httpOnly cookie `token` on the API host (not readable in JS).
+ * Validates session with GET /auth/me + credentials.
  */
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [allowed, setAllowed] = useState(false);
+  const [state, setState] = useState<
+    "loading" | "ok" | "unauthenticated" | "error"
+  >("loading");
 
-  useEffect(() => {
-    const token =
-      window.localStorage.getItem(CMS_TOKEN_KEY) ||
-      window.sessionStorage.getItem(CMS_TOKEN_KEY);
-    if (!token) {
+  const runCheck = useCallback(async () => {
+    setState("loading");
+    const result = await checkCmsAuthSession();
+    if (result === "authenticated") setState("ok");
+    else if (result === "unauthenticated") {
       router.replace("/login");
-      return;
+    } else {
+      setState("error");
     }
-    setAllowed(true);
   }, [router]);
 
-  if (!allowed) {
+  useEffect(() => {
+    void runCheck();
+  }, [runCheck]);
+
+  if (state === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
         Loading…
@@ -32,5 +38,33 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  if (state === "error") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center text-slate-700">
+        <p className="max-w-md">
+          Could not verify your session with the API. Check your connection and
+          that the API allows{" "}
+          <code className="rounded bg-slate-200 px-1 text-sm">credentials</code>{" "}
+          from this site.
+        </p>
+        <button
+          type="button"
+          onClick={() => void runCheck()}
+          className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (state === "ok") {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+      Redirecting…
+    </div>
+  );
 }

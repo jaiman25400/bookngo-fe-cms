@@ -1,33 +1,21 @@
 // utils/api.ts
-import axios, { type InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
 
-// Prefer public URL so it is available in the browser bundle,
-// but still fall back to server-only env for SSR if needed.
-const API_BASE_URL =
+/** Base URL for BookNGo API (browser + server bundle). */
+export const CMS_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.SERVER_API_BASE_URL ||
-  'http://localhost:3000';
+  "http://localhost:3000";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: CMS_API_BASE_URL,
   withCredentials: true,
 });
 
+/** Legacy key from an older JWT-in-localStorage flow; cleared on logout / 401. */
 export const CMS_TOKEN_KEY = "cms_token";
 
-function readCmsTokenFromBrowserStorage(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return (
-      window.localStorage.getItem(CMS_TOKEN_KEY) ||
-      window.sessionStorage.getItem(CMS_TOKEN_KEY)
-    );
-  } catch {
-    return null;
-  }
-}
-
-function clearCmsTokenFromBrowserStorage(): void {
+function clearLegacyCmsTokenStorage(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(CMS_TOKEN_KEY);
@@ -37,13 +25,13 @@ function clearCmsTokenFromBrowserStorage(): void {
   }
 }
 
-/** Clear session and go to login when API returns 401 (expired / invalid token). */
+/** Clear client state and go to login when API returns 401 (cookie expired / invalid). */
 function redirectToLoginIfUnauthorized(error: unknown): boolean {
   if (typeof window === "undefined") return false;
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status !== 401) return false;
 
-  clearCmsTokenFromBrowserStorage();
+  clearLegacyCmsTokenStorage();
   delete axios.defaults.headers.common.Authorization;
   delete api.defaults.headers.common.Authorization;
 
@@ -54,39 +42,25 @@ function redirectToLoginIfUnauthorized(error: unknown): boolean {
   return true;
 }
 
-// Debug: log the API base URL on the client
-if (typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
-  console.log("[API] Base URL =", API_BASE_URL);
-}
-
-// Attach Authorization from storage on the client (module load).
-if (typeof window !== "undefined") {
-  const token = readCmsTokenFromBrowserStorage();
-  if (token) {
-    const bearer = `Bearer ${token}`;
-    api.defaults.headers.common["Authorization"] = bearer;
-    axios.defaults.headers.common["Authorization"] = bearer;
-    // eslint-disable-next-line no-console
-    console.log("[API] Authorization header set from stored token");
+/**
+ * CMS auth is httpOnly cookie `token` on the API host. JS cannot read it;
+ * use this to see if the cookie session is valid.
+ */
+export async function checkCmsAuthSession(): Promise<
+  "authenticated" | "unauthenticated" | "error"
+> {
+  try {
+    const res = await axios.get(`${CMS_API_BASE_URL}/auth/me`, {
+      withCredentials: true,
+      timeout: 10000,
+      validateStatus: (s) => s >= 200 && s < 600,
+    });
+    if (res.status === 200) return "authenticated";
+    if (res.status === 401 || res.status === 403) return "unauthenticated";
+    return "error";
+  } catch {
+    return "error";
   }
-}
-
-function attachBearerFromStorage(config: InternalAxiosRequestConfig) {
-  const token = readCmsTokenFromBrowserStorage();
-  if (token) {
-    config.headers.set("Authorization", `Bearer ${token}`);
-  }
-  return config;
-}
-
-// Per-request: dashboard and other modules use raw `axios`; defaults alone can miss
-// the token after login. Always merge Bearer from storage before each request.
-let axiosInterceptorsRegistered = false;
-if (typeof window !== "undefined" && !axiosInterceptorsRegistered) {
-  axiosInterceptorsRegistered = true;
-  axios.interceptors.request.use(attachBearerFromStorage);
-  api.interceptors.request.use(attachBearerFromStorage);
 }
 
 // Same-origin CMS calls also use the default `axios` instance (e.g. dashboard.ts).
@@ -120,26 +94,23 @@ api.interceptors.response.use(
     });
 
     if (error.response) {
-      // Handle HTTP errors with responses
       return Promise.reject({
-        message: error.response.data?.message || 'An error occurred',
+        message: error.response.data?.message || "An error occurred",
         status: error.response.status,
-        data: error.response.data
-      });
-    }
-    
-    if (error.request) {
-      // Handle network errors
-      return Promise.reject({
-        message: 'Network error - please check your connection',
-        status: 0
+        data: error.response.data,
       });
     }
 
-    // Handle other errors
+    if (error.request) {
+      return Promise.reject({
+        message: "Network error - please check your connection",
+        status: 0,
+      });
+    }
+
     return Promise.reject({
-      message: error.message || 'An unexpected error occurred',
-      status: 500
+      message: error.message || "An unexpected error occurred",
+      status: 500,
     });
   }
 );
