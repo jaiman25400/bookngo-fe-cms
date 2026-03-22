@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CMS_TOKEN_KEY } from "@/app/utils/api";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +34,8 @@ export default function Navbar() {
         credentials: "include",
       });
       try {
-        window.localStorage.removeItem("cms_token");
+        window.localStorage.removeItem(CMS_TOKEN_KEY);
+        window.sessionStorage.removeItem(CMS_TOKEN_KEY);
       } catch {
         /* ignore */
       }

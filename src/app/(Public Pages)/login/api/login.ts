@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-import api from "@/app/utils/api";
+import api, { CMS_TOKEN_KEY } from "@/app/utils/api";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -16,6 +16,55 @@ interface LoginError {
   message: string;
   status?: number;
   isNetworkError?: boolean;
+}
+
+function pickTokenFromObject(obj: Record<string, unknown> | undefined) {
+  if (!obj) return undefined;
+  const v = obj.accessToken ?? obj.access_token ?? obj.token ?? obj.jwt;
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+/** Backend may return JWT at root, under `data`, `data.user`, or `data.tokens`. */
+function extractAccessToken(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const root = payload as Record<string, unknown>;
+  const fromRoot = pickTokenFromObject(root);
+  if (fromRoot) return fromRoot;
+
+  const inner = root.data;
+  if (!inner || typeof inner !== "object") return undefined;
+  const data = inner as Record<string, unknown>;
+  const fromData = pickTokenFromObject(data);
+  if (fromData) return fromData;
+
+  const user = data.user;
+  if (user && typeof user === "object") {
+    const fromUser = pickTokenFromObject(user as Record<string, unknown>);
+    if (fromUser) return fromUser;
+  }
+
+  const tokens = data.tokens;
+  if (tokens && typeof tokens === "object") {
+    const fromTokens = pickTokenFromObject(tokens as Record<string, unknown>);
+    if (fromTokens) return fromTokens;
+  }
+
+  return undefined;
+}
+
+function persistCmsToken(token: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CMS_TOKEN_KEY, token);
+    return;
+  } catch {
+    /* localStorage blocked or full */
+  }
+  try {
+    window.sessionStorage.setItem(CMS_TOKEN_KEY, token);
+  } catch {
+    /* ignore */
+  }
 }
 
 export const loginUser = async (email: string, password: string) => {
@@ -45,22 +94,21 @@ export const loginUser = async (email: string, password: string) => {
       dataKeys: data && typeof data === "object" ? Object.keys(data) : typeof data,
     });
 
-    const token =
-      data?.accessToken ||
-      data?.access_token ||
-      data?.token;
+    const token = extractAccessToken(data);
 
-    // Persist token client-side and attach as Authorization header
-    if (token && typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem("cms_token", token);
+    if (typeof window !== "undefined") {
+      if (token) {
+        persistCmsToken(token);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         // eslint-disable-next-line no-console
-        console.log("[Login] Token stored in localStorage and set on axios defaults");
-      } catch {
-        // ignore storage errors
+        console.log("[Login] Token stored and set on axios defaults");
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[Login] No JWT in login response body; AuthGate requires cms_token. Check API JSON shape or use cookie + /me flow."
+        );
       }
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
 
     return data; // Return the response payload

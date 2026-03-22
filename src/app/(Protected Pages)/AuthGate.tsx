@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Side effect: attach axios defaults from localStorage before any child fetches
-import "@/app/utils/api";
-
-const TOKEN_KEY = "cms_token";
+import { CMS_TOKEN_KEY } from "@/app/utils/api";
 
 /**
  * Blocks protected UI until we confirm a CMS token exists; otherwise sends the user to login.
@@ -17,7 +14,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    const token = window.localStorage.getItem(TOKEN_KEY);
+    const token =
+      window.localStorage.getItem(CMS_TOKEN_KEY) ||
+      window.sessionStorage.getItem(CMS_TOKEN_KEY);
     if (!token) {
       router.replace("/login");
       return;

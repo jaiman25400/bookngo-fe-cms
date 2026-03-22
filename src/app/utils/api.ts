@@ -1,5 +1,5 @@
 // utils/api.ts
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from "axios";
 
 // Prefer public URL so it is available in the browser bundle,
 // but still fall back to server-only env for SSR if needed.
@@ -13,7 +13,29 @@ const api = axios.create({
   withCredentials: true,
 });
 
-const TOKEN_KEY = "cms_token";
+export const CMS_TOKEN_KEY = "cms_token";
+
+function readCmsTokenFromBrowserStorage(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return (
+      window.localStorage.getItem(CMS_TOKEN_KEY) ||
+      window.sessionStorage.getItem(CMS_TOKEN_KEY)
+    );
+  } catch {
+    return null;
+  }
+}
+
+function clearCmsTokenFromBrowserStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(CMS_TOKEN_KEY);
+    window.sessionStorage.removeItem(CMS_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Clear session and go to login when API returns 401 (expired / invalid token). */
 function redirectToLoginIfUnauthorized(error: unknown): boolean {
@@ -21,11 +43,7 @@ function redirectToLoginIfUnauthorized(error: unknown): boolean {
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status !== 401) return false;
 
-  try {
-    window.localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    /* ignore */
-  }
+  clearCmsTokenFromBrowserStorage();
   delete axios.defaults.headers.common.Authorization;
   delete api.defaults.headers.common.Authorization;
 
@@ -42,17 +60,33 @@ if (typeof window !== "undefined") {
   console.log("[API] Base URL =", API_BASE_URL);
 }
 
-// Attach Authorization header from localStorage token on the client,
-// so backend can also read JWT from Authorization if needed.
+// Attach Authorization from storage on the client (module load).
 if (typeof window !== "undefined") {
-  const token = window.localStorage.getItem("cms_token");
+  const token = readCmsTokenFromBrowserStorage();
   if (token) {
     const bearer = `Bearer ${token}`;
     api.defaults.headers.common["Authorization"] = bearer;
     axios.defaults.headers.common["Authorization"] = bearer;
     // eslint-disable-next-line no-console
-    console.log("[API] Authorization header set from localStorage token");
+    console.log("[API] Authorization header set from stored token");
   }
+}
+
+function attachBearerFromStorage(config: InternalAxiosRequestConfig) {
+  const token = readCmsTokenFromBrowserStorage();
+  if (token) {
+    config.headers.set("Authorization", `Bearer ${token}`);
+  }
+  return config;
+}
+
+// Per-request: dashboard and other modules use raw `axios`; defaults alone can miss
+// the token after login. Always merge Bearer from storage before each request.
+let axiosInterceptorsRegistered = false;
+if (typeof window !== "undefined" && !axiosInterceptorsRegistered) {
+  axiosInterceptorsRegistered = true;
+  axios.interceptors.request.use(attachBearerFromStorage);
+  api.interceptors.request.use(attachBearerFromStorage);
 }
 
 // Same-origin CMS calls also use the default `axios` instance (e.g. dashboard.ts).
