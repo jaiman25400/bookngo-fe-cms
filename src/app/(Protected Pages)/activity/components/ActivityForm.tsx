@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, ChangeEvent } from "react";
 import ZoneSelector from "./ZoneSelector";
+import { resolvePublicAssetUrl } from "@/app/utils/mediaUrl";
 import {
   UpdateActivityFormData,
   currentActivityPayload,
@@ -38,9 +39,9 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
 
   // Gallery handling
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>(
-    initialData?.activity_image_gallery?.map(
-      (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL}${img}`
-    ) || []
+    initialData?.activity_image_gallery
+      ?.map((img) => resolvePublicAssetUrl(img))
+      .filter((u): u is string => Boolean(u)) || []
   );
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
@@ -543,7 +544,10 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
               <img
                 src={
                   thumbnailPreview ||
-                  `${process.env.NEXT_PUBLIC_API_BASE_URL}${formData.activity_thumbnail_image}`
+                  resolvePublicAssetUrl(
+                    formData.activity_thumbnail_image ?? undefined
+                  ) ||
+                  ""
                 }
                 alt="Thumbnail preview"
                 className="mt-2 h-32 w-32 object-cover rounded"

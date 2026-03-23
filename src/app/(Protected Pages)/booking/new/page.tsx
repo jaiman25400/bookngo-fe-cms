@@ -14,6 +14,7 @@ import {
   ArrowRightIcon
 } from "@heroicons/react/24/outline";
 import Notification from "@/components/Notification";
+import { resolvePublicAssetUrl } from "@/app/utils/mediaUrl";
 import { 
   getEmployeeActivities,
   getActivityBookingDetails,
@@ -565,17 +566,22 @@ export default function NewBookingPage() {
             {activityDetails && (
               <>
                 <div className="aspect-square bg-gray-200 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                  {activityDetails.zones?.[0]?.zone_thumbnail_image ? (
-                    <Image 
-                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${activityDetails.zones[0].zone_thumbnail_image}`} 
-                      alt={activityDetails.activity_name}
-                      fill
-                      className="object-cover rounded-lg"
-                      unoptimized
-                    />
-                  ) : (
-                    <CalendarIcon className="h-12 w-12 text-gray-400" />
-                  )}
+                  {(() => {
+                    const thumbSrc = resolvePublicAssetUrl(
+                      activityDetails.zones?.[0]?.zone_thumbnail_image
+                    );
+                    return thumbSrc ? (
+                      <Image
+                        src={thumbSrc}
+                        alt={activityDetails.activity_name}
+                        fill
+                        className="object-cover rounded-lg"
+                        unoptimized
+                      />
+                    ) : (
+                      <CalendarIcon className="h-12 w-12 text-gray-400" />
+                    );
+                  })()}
                 </div>
                 <h3 className="font-bold text-lg text-gray-900 mb-3">{activityDetails.activity_name}</h3>
                 <div className="space-y-2 text-sm">
@@ -871,17 +877,22 @@ export default function NewBookingPage() {
                       : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  {zone.zone_thumbnail_image && (
-                    <div className="relative w-full h-32 mb-3">
-                      <Image
-                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${zone.zone_thumbnail_image}`}
-                        alt={zone.name}
-                        fill
-                        className="object-cover rounded-lg"
-                        unoptimized
-                      />
-                    </div>
-                  )}
+                  {(() => {
+                    const zoneThumb = resolvePublicAssetUrl(
+                      zone.zone_thumbnail_image
+                    );
+                    return zoneThumb ? (
+                      <div className="relative w-full h-32 mb-3">
+                        <Image
+                          src={zoneThumb}
+                          alt={zone.name}
+                          fill
+                          className="object-cover rounded-lg"
+                          unoptimized
+                        />
+                      </div>
+                    ) : null;
+                  })()}
                   <h4 className="font-semibold text-gray-900 mb-1">{zone.name}</h4>
                   <p className="text-xs text-gray-600 mb-2">{zone.description}</p>
                   <div className="flex items-center justify-between mt-2">
@@ -953,17 +964,22 @@ export default function NewBookingPage() {
               </button>
             </div>
             <div className="flex items-center gap-4">
-              {selectedZone.zone_thumbnail_image && (
-                <div className="relative w-20 h-20">
-                  <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${selectedZone.zone_thumbnail_image}`}
-                    alt={selectedZone.name}
-                    fill
-                    className="object-cover rounded-lg"
-                    unoptimized
-                  />
-                </div>
-              )}
+              {(() => {
+                const selThumb = resolvePublicAssetUrl(
+                  selectedZone.zone_thumbnail_image
+                );
+                return selThumb ? (
+                  <div className="relative w-20 h-20">
+                    <Image
+                      src={selThumb}
+                      alt={selectedZone.name}
+                      fill
+                      className="object-cover rounded-lg"
+                      unoptimized
+                    />
+                  </div>
+                ) : null;
+              })()}
               <div>
                 <p className="font-medium text-gray-900">{selectedZone.name}</p>
                 <p className="text-sm text-gray-600">{selectedZone.description}</p>

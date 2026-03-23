@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { InventoryItem } from "../types/InventoryTypes";
+import { resolvePublicAssetUrl } from "@/app/utils/mediaUrl";
 
 interface InventoryFormProps {
   initialData?: InventoryItem | null;
@@ -192,7 +193,8 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
             <img
               src={
                 thumbnailPreview ||
-                `${process.env.NEXT_PUBLIC_API_BASE_URL}${formData.thumbnailImageUrl}`
+                resolvePublicAssetUrl(formData.thumbnailImageUrl ?? undefined) ||
+                ""
               }
               alt="Thumbnail preview"
               className="mt-2 h-32 w-32 object-cover rounded"

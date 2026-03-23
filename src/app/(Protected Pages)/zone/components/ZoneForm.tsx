@@ -4,6 +4,7 @@ import {
   UpdateZoneFormData,
   ZoneStatus,
 } from "../types/ZoneTypes";
+import { resolvePublicAssetUrl } from "@/app/utils/mediaUrl";
 
 interface ZoneFormProps { 
   initialData?: UpdateZoneFormData | null;
@@ -30,9 +31,9 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
 
   // Gallery handling
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>(
-    initialData?.zone_image_gallery?.map(
-      (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL}${img}`
-    ) || []
+    initialData?.zone_image_gallery
+      ?.map((img) => resolvePublicAssetUrl(img))
+      .filter((u): u is string => Boolean(u)) || []
   );
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
@@ -215,7 +216,10 @@ const ZoneForm: React.FC<ZoneFormProps> = ({
                 <img
                   src={
                     thumbnailPreview ||
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}${formData.zone_thumbnail_image}`
+                    resolvePublicAssetUrl(
+                      formData.zone_thumbnail_image ?? undefined
+                    ) ||
+                    ""
                   }
                   alt="Thumbnail preview"
                   className="mt-2 h-32 w-32 object-cover rounded"

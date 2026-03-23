@@ -3,6 +3,7 @@ import { useState, useEffect, ChangeEvent, useCallback } from "react";
 import { ProfileData } from "./types/profileTypes";
 import { fetchProfileData, updateProfileData } from "./api/profilepage";
 import Notification from "@/components/Notification";
+import { resolvePublicAssetUrl } from "@/app/utils/mediaUrl";
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState<ProfileData>({});
@@ -41,15 +42,13 @@ const ProfilePage = () => {
 
         // Set initial image previews
         if (data.home_image_url) {
-          setHomeImagePreview(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${data.home_image_url}`
-          );
+          setHomeImagePreview(resolvePublicAssetUrl(data.home_image_url) ?? null);
         }
         if (data.home_image_gallery) {
           setGalleryPreviews(
-            data.home_image_gallery.map(
-              (img) => `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${img}`
-            )
+            data.home_image_gallery
+              .map((img) => resolvePublicAssetUrl(img))
+              .filter((u): u is string => Boolean(u))
           );
         }
       } catch (err: any) {
@@ -164,16 +163,16 @@ const ProfilePage = () => {
       // Reset file states and previews with server URLs
       if (updatedProfile.home_image_url) {
         setHomeImagePreview(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${updatedProfile.home_image_url}`
+          resolvePublicAssetUrl(updatedProfile.home_image_url) ?? null
         );
         setHomeImageFile(null);
       }
 
       if (updatedProfile.home_image_gallery) {
         setGalleryPreviews(
-          updatedProfile.home_image_gallery.map(
-            (img: any) => `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${img}`
-          )
+          updatedProfile.home_image_gallery
+            .map((img: string) => resolvePublicAssetUrl(img))
+            .filter((u: string | undefined): u is string => Boolean(u))
         );
         setGalleryFiles([]);
       }
